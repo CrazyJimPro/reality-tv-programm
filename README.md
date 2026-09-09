@@ -144,3 +144,13 @@ crontab -l | grep -v '# RealityTV_Scraper' | crontab -
   `scraper/sources/` angepasst werden (Selektoren sind zentral an einer
   Stelle pro Datei).
 - Ausschließlich lokale Speicherung, kein Versand an Dritte.
+
+## Problembehebung
+
+- **"Python wurde nicht gefunden ... Microsoft Store ..." trotz Python-Check:**
+  Windows legt standardmäßig einen `python`-Platzhalter an, der nur auf den
+  Microsoft Store verweist, aber kein echtes Python ist. `start.bat` erkennt
+  das inzwischen und installiert automatisch per `winget` — falls die
+  Meldung trotzdem erscheint, hilft meist ein manueller Python-Download von
+  https://www.python.org/downloads/ (dabei "Add python.exe to PATH"
+  anhaken) und `start.bat` danach in einem neuen Terminal erneut starten.

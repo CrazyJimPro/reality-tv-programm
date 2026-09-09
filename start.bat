@@ -42,9 +42,19 @@ if not exist "requirements.txt" (
 )
 
 rem --- 1. Python vorhanden? Sonst automatisch per winget installieren ---
-where python >nul 2>nul
-if errorlevel 1 (
-    echo Python wurde nicht gefunden. Versuche automatische Installation per winget...
+rem Ein blosses "where python" reicht nicht: Windows legt standardmaessig
+rem einen "python"-Platzhalter an, der nur auf den Microsoft Store verweist
+rem und dabei erfolgreich gefunden wird, aber kein echtes Python ist. Daher
+rem hier ein echter Funktionstest per Ausgabe-Pruefung.
+set "PYTHON_EXE="
+for /f "delims=" %%v in ('python -c "print(1)" 2^>nul') do if "%%v"=="1" set "PYTHON_EXE=python"
+if not defined PYTHON_EXE (
+    for /f "delims=" %%v in ('py -3 -c "print(1)" 2^>nul') do if "%%v"=="1" set "PYTHON_EXE=py -3"
+)
+
+if not defined PYTHON_EXE (
+    echo Python wurde nicht gefunden ^(oder "python" ist nur der Microsoft-Store-Platzhalter^).
+    echo Versuche automatische Installation per winget...
     where winget >nul 2>nul
     if errorlevel 1 (
         echo Fehler: winget ist nicht verfuegbar.
@@ -59,16 +69,30 @@ if errorlevel 1 (
         pause
         exit /b 1
     )
-    echo Python wurde installiert. Bitte dieses Fenster schliessen, ein NEUES Terminal
-    echo oeffnen und start.bat erneut starten ^(damit Windows den neuen PATH kennt^).
-    pause
-    exit /b 0
+
+    rem Frisch installiertes Python direkt am typischen Installationsort suchen,
+    rem statt auf ein neues Terminal zu hoffen - der "python"-Befehl kann
+    rem weiterhin auf den Microsoft-Store-Platzhalter zeigen, je nach PATH-Reihenfolge.
+    for /d %%d in ("%LocalAppData%\Programs\Python\Python3*") do (
+        if exist "%%d\python.exe" set "PYTHON_EXE=%%d\python.exe"
+    )
+    if not defined PYTHON_EXE (
+        for /f "delims=" %%v in ('python -c "print(1)" 2^>nul') do if "%%v"=="1" set "PYTHON_EXE=python"
+    )
+    if not defined PYTHON_EXE (
+        echo Python wurde installiert, konnte aber nicht automatisch gefunden werden.
+        echo Bitte dieses Fenster schliessen, ein NEUES Terminal oeffnen und
+        echo start.bat erneut starten ^(damit Windows den neuen PATH kennt^).
+        pause
+        exit /b 0
+    )
+    echo Python gefunden unter: %PYTHON_EXE%
 )
 
 rem --- 2. Virtuelle Umgebung + Abhaengigkeiten, falls noch nicht vorhanden ---
 if not exist "venv\Scripts\python.exe" (
     echo Richte virtuelle Umgebung ein ^(einmalig, dauert etwas^)...
-    python -m venv venv
+    %PYTHON_EXE% -m venv venv
     if errorlevel 1 (
         echo Fehler beim Anlegen der virtuellen Umgebung.
         pause
