@@ -18,8 +18,16 @@ def _normalisiert(text: str) -> str:
     return " ".join(text.lower().replace("-", " ").replace("!", "").split())
 
 
+def lade_shows_config(config_pfad: Path = CONFIG_PFAD) -> dict:
+    return json.loads(config_pfad.read_text(encoding="utf-8"))
+
+
+def speichere_shows_config(daten: dict, config_pfad: Path = CONFIG_PFAD) -> None:
+    config_pfad.write_text(json.dumps(daten, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def lade_show_namen(config_pfad: Path = CONFIG_PFAD) -> list[str]:
-    daten = json.loads(config_pfad.read_text(encoding="utf-8"))
+    daten = lade_shows_config(config_pfad)
     namen: list[str] = []
     for show in daten.get("shows", []):
         namen.append(show["name"])

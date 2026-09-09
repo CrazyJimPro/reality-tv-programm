@@ -10,6 +10,7 @@
   <header>
     <h1>Reality-TV Programmübersicht</h1>
     <p class="subtitle">RTL · VOX · Sat.1 · ProSieben — Stand: {{ heute.strftime('%d.%m.%Y') }} · {{ anzahl_gesamt }} Sendungen gefunden</p>
+    <nav class="nav-back"><a href="{{ url_for('einstellungen') }}">Sendungen verwalten &rarr;</a></nav>
   </header>
 
   <section class="quellen-status">

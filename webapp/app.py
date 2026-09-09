@@ -15,9 +15,11 @@ PROJEKT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJEKT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJEKT_ROOT))
 
-from flask import Flask, render_template  # noqa: E402
+from flask import Flask, redirect, render_template, request, url_for  # noqa: E402
 
+from scraper.filter import CONFIG_PFAD, lade_shows_config, speichere_shows_config  # noqa: E402
 from scraper.storage import DB_PFAD, hole_programme, hole_quellen_status  # noqa: E402
+from vorschlaege import VORSCHLAEGE  # noqa: E402
 
 app = Flask(__name__)
 
@@ -68,6 +70,46 @@ def index():
         status=status,
         heute=heute,
         anzahl_gesamt=len(rows),
+    )
+
+
+@app.route("/einstellungen", methods=["GET", "POST"])
+def einstellungen():
+    daten = lade_shows_config(CONFIG_PFAD)
+    aktive_shows = daten.get("shows", [])
+
+    if request.method == "POST":
+        ausgewaehlte_namen = set(request.form.getlist("shows"))
+        neuer_name = request.form.get("neuer_name", "").strip()
+        neue_aliases_raw = request.form.get("neue_aliases", "").strip()
+
+        # Katalog fuer den Aliase-Lookup: Vorschlaege + bisher aktive Eintraege
+        katalog: dict[str, list[str]] = {s["name"]: s.get("aliases", []) for s in VORSCHLAEGE}
+        katalog.update({s["name"]: s.get("aliases", []) for s in aktive_shows})
+
+        neue_shows = [{"name": name, "aliases": katalog.get(name, [])} for name in ausgewaehlte_namen]
+
+        if neuer_name and neuer_name not in ausgewaehlte_namen:
+            aliases = [a.strip() for a in neue_aliases_raw.split(",") if a.strip()]
+            neue_shows.append({"name": neuer_name, "aliases": aliases})
+
+        neue_shows.sort(key=lambda s: s["name"].lower())
+        daten["shows"] = neue_shows
+        speichere_shows_config(daten, CONFIG_PFAD)
+        return redirect(url_for("einstellungen", gespeichert=1))
+
+    aktive_namen = {s["name"] for s in aktive_shows}
+    vorschlag_namen = {v["name"] for v in VORSCHLAEGE}
+    zusaetzliche_aktive = [s for s in aktive_shows if s["name"] not in vorschlag_namen]
+
+    anzeige_liste = list(VORSCHLAEGE) + zusaetzliche_aktive
+    anzeige_liste.sort(key=lambda s: s["name"].lower())
+
+    return render_template(
+        "einstellungen.html",
+        shows=anzeige_liste,
+        aktive_namen=aktive_namen,
+        gespeichert=request.args.get("gespeichert") == "1",
     )
 
 

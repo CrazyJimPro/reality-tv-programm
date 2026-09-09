@@ -143,3 +143,103 @@ footer code {
   padding: 0.1rem 0.3rem;
   border-radius: 4px;
 }
+
+.nav-back {
+  margin-top: 0.5rem;
+}
+
+.nav-back a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.nav-back a:hover {
+  text-decoration: underline;
+}
+
+.gespeichert-hinweis {
+  background: #1a7a3a;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.show-liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 1.5rem 0;
+}
+
+.show-checkbox {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.show-checkbox input {
+  flex-shrink: 0;
+}
+
+.show-aliases {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.neue-show {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.neue-show h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+}
+
+.hinweis {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0;
+}
+
+.neue-show-felder {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.neue-show-felder input {
+  flex: 1;
+  min-width: 220px;
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--fg);
+  font-size: 0.9rem;
+}
+
+.speichern-button {
+  margin-top: 1.5rem;
+  padding: 0.6rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.speichern-button:hover {
+  opacity: 0.9;
+}

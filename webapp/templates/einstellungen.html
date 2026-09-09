@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sendungen verwalten</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Sendungen verwalten</h1>
+    <p class="subtitle">Vorschläge an-/abwählen oder eigene Sendungen hinzufügen — wirkt sich ab dem nächsten Scraper-Lauf aus.</p>
+    <nav class="nav-back"><a href="{{ url_for('index') }}">&larr; zurück zur Übersicht</a></nav>
+  </header>
+
+  {% if gespeichert %}
+    <p class="gespeichert-hinweis">Gespeichert. Die Auswahl gilt ab dem nächsten Scraper-Lauf.</p>
+  {% endif %}
+
+  <form method="post">
+    <section class="show-liste">
+      {% for show in shows %}
+        <label class="show-checkbox">
+          <input type="checkbox" name="shows" value="{{ show.name }}" {% if show.name in aktive_namen %}checked{% endif %}>
+          {{ show.name }}
+          {% if show.aliases %}<span class="show-aliases">({{ show.aliases|join(', ') }})</span>{% endif %}
+        </label>
+      {% endfor %}
+    </section>
+
+    <section class="neue-show">
+      <h2>Eigene Sendung hinzufügen</h2>
+      <p class="hinweis">Nicht in der Liste? Hier ergänzen — wird beim Speichern automatisch mit ausgewählt.</p>
+      <div class="neue-show-felder">
+        <input type="text" name="neuer_name" placeholder="Name der Sendung">
+        <input type="text" name="neue_aliases" placeholder="Alternative Schreibweisen, mit Komma getrennt (optional)">
+      </div>
+    </section>
+
+    <button type="submit" class="speichern-button">Speichern</button>
+  </form>
+</body>
+</html>

@@ -54,9 +54,19 @@ und überspringen den Download.)*
 
 ## Danach: Sendungen hinzufügen oder entfernen
 
-Die Liste der erkannten Reality-Formate steht in
-[`config/reality_shows.json`](config/reality_shows.json) — eine einfache
-Textdatei, die mit jedem Editor (z.B. Notepad, VS Code) bearbeitet wird.
+**Am einfachsten über die Web-App:** oben auf der Übersicht auf
+"Sendungen verwalten" klicken (oder direkt http://127.0.0.1:5000/einstellungen
+öffnen). Dort gibt es eine Liste bekannter Reality-Formate zum An-/Abhaken
+sowie ein Feld, um eigene, nicht gelistete Sendungen mit Namen (und optional
+alternativen Schreibweisen, mit Komma getrennt) hinzuzufügen. "Speichern"
+schreibt die Auswahl direkt in `config/reality_shows.json`.
+
+<details>
+<summary>Alternative: die Datei config/reality_shows.json direkt bearbeiten</summary>
+
+Das ist eine einfache Textdatei, die mit jedem Editor (z.B. Notepad, VS Code)
+bearbeitet werden kann — nützlich für Formate, die nicht in der Vorschlagsliste
+der Web-App stehen, oder um Aliase eines bestehenden Eintrags anzupassen.
 
 **Sendung hinzufügen:** neue Zeile nach folgendem Muster ergänzen:
 
@@ -83,6 +93,8 @@ nachher (Love Island entfernt):
 { "name": "Big Brother", "aliases": ["Promi Big Brother"] },
 ```
 
+</details>
+
 In beiden Fällen: Speichern reicht — die Datei wird bei **jedem**
 Scraper-Lauf neu eingelesen, kein Neustart nötig. Die Änderung wirkt sich ab
 dem nächsten Lauf aus (automatisch am Mo/Do oder durch erneutes Ausführen von
@@ -100,7 +112,9 @@ erkannt/aktualisiert.
 - `scraper/merge.py` — führt Duplikate aus beiden Quellen zusammen
 - `scraper/filter.py` — Abgleich gegen `config/reality_shows.json`
 - `scraper/storage.py` — SQLite (`data/programm.db`)
-- `webapp/` — Flask-App, liest nur aus der DB
+- `webapp/` — Flask-App: `/` zeigt die Programmübersicht (liest nur aus der
+  DB), `/einstellungen` verwaltet `config/reality_shows.json` (Vorschläge
+  aus `webapp/vorschlaege.py` an-/abwählen, eigene Sendungen hinzufügen)
 - `start.bat` / `start.sh` — die einzige Datei, die man ausführt: Installation
   + automatische Aktualisierung einrichten + Web-App starten, alles in einem
 
