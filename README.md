@@ -7,25 +7,38 @@ nächste und übernächste Woche.
 
 Läuft unter **Windows und Linux**.
 
-## Installation: nur eine Datei ausführen
+## Installation: nur eine Datei herunterladen und ausführen
 
-Kein manuelles Einrichten nötig — **eine** Datei erledigt alles automatisch:
-Python-Check, virtuelle Umgebung, Abhängigkeiten, automatische Aktualisierung
-(Mo + Do, 06:00 Uhr) und den ersten Datenabruf.
+Es reicht, **eine einzige Datei** herunterzuladen — nicht das ganze Repo.
+Der Rest des Projekts wird beim ersten Start automatisch von GitHub
+nachgeladen.
 
-**Windows:** Doppelklick auf [`start.bat`](start.bat)
-**Linux:** im Terminal `chmod +x start.sh && ./start.sh`
+**Windows:** [`start.bat`](start.bat) herunterladen (Rechtsklick auf den Link
+→ "Ziel speichern unter" bzw. auf GitHub den "Raw"-Button → Strg+S) und
+doppelklicken.
+**Linux:** [`start.sh`](start.sh) herunterladen und ausführen:
+```bash
+chmod +x start.sh && ./start.sh
+```
 
-Beim allerersten Ausführen dauert es ca. 1-2 Minuten (venv wird angelegt,
-Abhängigkeiten installiert, erste Programmdaten geholt). Danach öffnet sich
-automatisch der Browser mit der Übersicht unter http://127.0.0.1:5000
+Egal von wo die Datei gestartet wird (Downloads-Ordner, USB-Stick, ...): Beim
+ersten Lauf lädt sie automatisch das komplette Projekt nach
+`%USERPROFILE%\reality-tv-programm` (Windows) bzw. `~/reality-tv-programm`
+(Linux) herunter und macht dort weiter. Danach: Python-Check, virtuelle
+Umgebung, Abhängigkeiten, automatische Aktualisierung (Mo + Do, 06:00 Uhr)
+und der erste Datenabruf — alles automatisch, ca. 1-2 Minuten beim
+allerersten Mal. Danach öffnet sich automatisch der Browser mit der
+Übersicht unter http://127.0.0.1:5000
 
-**Jedes weitere Mal** einfach dieselbe Datei nochmal ausführen — bereits
-erledigte Schritte (venv, automatische Aktualisierung, Erstabruf) werden
-übersprungen, es öffnet sich nur die Web-App. Die App muss nicht dauerhaft
-laufen: einfach starten, wenn du reinschauen willst, `Strg+C` zum Beenden.
+**Jedes weitere Mal** einfach dieselbe Datei nochmal ausführen (oder direkt
+`start.bat`/`start.sh` im installierten Ordner) — bereits erledigte Schritte
+werden übersprungen, es öffnet sich nur die Web-App. Die App muss nicht
+dauerhaft laufen: einfach starten, wenn du reinschauen willst, `Strg+C` zum
+Beenden.
 
 Was das Skript im Detail automatisch macht:
+- lädt bei Bedarf den Rest des Projekts von GitHub herunter (nur beim
+  allerersten Mal, wenn nur diese eine Datei vorhanden ist)
 - prüft, ob Python vorhanden ist — falls nicht: installiert es selbst
   (Windows: `winget`, Linux: `apt-get`, braucht dort `sudo`)
 - legt eine virtuelle Umgebung an und installiert die Abhängigkeiten
@@ -34,6 +47,10 @@ Was das Skript im Detail automatisch macht:
 - holt beim allerersten Start einmalig sofort die aktuellen Programmdaten,
   damit direkt etwas zu sehen ist
 - startet die Web-App und öffnet den Browser
+
+*(Wer lieber das ganze Repo selbst klont/als ZIP lädt, kann das natürlich
+auch tun — `start.bat`/`start.sh` erkennen dann, dass der Rest schon da ist,
+und überspringen den Download.)*
 
 ## Danach: Sendungen hinzufügen oder entfernen
 

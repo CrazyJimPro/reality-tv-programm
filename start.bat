@@ -5,6 +5,42 @@ cd /d "%~dp0"
 echo === Reality-TV Programmuebersicht ===
 echo.
 
+rem --- 0. Falls das Projekt (noch) nicht komplett vorhanden ist (z.B. weil nur
+rem     diese eine Datei heruntergeladen wurde): kompletten Code von GitHub
+rem     laden und von dort aus weitermachen. ---
+set "ZIEL_ORDNER=%USERPROFILE%\reality-tv-programm"
+if not exist "requirements.txt" (
+    if /I not "%cd%"=="%ZIEL_ORDNER%" (
+        if not exist "%ZIEL_ORDNER%\requirements.txt" (
+            echo Projekt-Dateien nicht gefunden - lade komplettes Projekt von GitHub herunter...
+            rem PowerShell-Logik in eine temporaere .ps1-Datei schreiben statt als
+            rem Inline-Befehl - vermeidet fragile verschachtelte Anfuehrungszeichen.
+            > "%TEMP%\rtv_download.ps1" (
+                echo $ErrorActionPreference = 'Stop'
+                echo Invoke-WebRequest -Uri 'https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.zip' -OutFile "$env:TEMP\rtv.zip"
+                echo Expand-Archive -Path "$env:TEMP\rtv.zip" -DestinationPath "$env:TEMP\rtv-extract" -Force
+                echo New-Item -ItemType Directory -Force -Path '%ZIEL_ORDNER%' ^| Out-Null
+                echo Copy-Item -Path "$env:TEMP\rtv-extract\reality-tv-programm-main\*" -Destination '%ZIEL_ORDNER%' -Recurse -Force
+                echo Remove-Item "$env:TEMP\rtv.zip","$env:TEMP\rtv-extract" -Recurse -Force
+            )
+            powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_download.ps1"
+            if errorlevel 1 (
+                del "%TEMP%\rtv_download.ps1" >nul 2>nul
+                echo Fehler beim Herunterladen/Entpacken. Bitte Internetverbindung pruefen,
+                echo oder das Repo manuell laden: https://github.com/CrazyJimPro/reality-tv-programm
+                pause
+                exit /b 1
+            )
+            del "%TEMP%\rtv_download.ps1" >nul 2>nul
+        )
+        echo Projekt liegt jetzt unter: %ZIEL_ORDNER%
+        echo Starte von dort weiter ...
+        echo.
+        call "%ZIEL_ORDNER%\start.bat"
+        exit /b %errorlevel%
+    )
+)
+
 rem --- 1. Python vorhanden? Sonst automatisch per winget installieren ---
 where python >nul 2>nul
 if errorlevel 1 (

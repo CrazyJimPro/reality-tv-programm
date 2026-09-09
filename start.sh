@@ -9,6 +9,41 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 echo "=== Reality-TV Programmuebersicht ==="
 echo
 
+# --- 0. Falls das Projekt (noch) nicht komplett vorhanden ist (z.B. weil nur
+#     diese eine Datei heruntergeladen wurde): kompletten Code von GitHub
+#     laden und von dort aus weitermachen. ---
+ZIEL_ORDNER="$HOME/reality-tv-programm"
+if [ ! -f "requirements.txt" ] && [ "$(pwd)" != "$ZIEL_ORDNER" ]; then
+    if [ ! -f "$ZIEL_ORDNER/requirements.txt" ]; then
+        echo "Projekt-Dateien nicht gefunden - lade komplettes Projekt von GitHub herunter..."
+        TMP_TAR="$(mktemp)"
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL -o "$TMP_TAR" "https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.tar.gz"
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q -O "$TMP_TAR" "https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.tar.gz"
+        else
+            echo "Fehler: weder curl noch wget gefunden."
+            echo "Bitte eines davon installieren oder das Repo manuell laden:"
+            echo "https://github.com/CrazyJimPro/reality-tv-programm"
+            exit 1
+        fi
+        if [ ! -s "$TMP_TAR" ]; then
+            echo "Fehler beim Herunterladen. Bitte Internetverbindung pruefen,"
+            echo "oder das Repo manuell laden: https://github.com/CrazyJimPro/reality-tv-programm"
+            rm -f "$TMP_TAR"
+            exit 1
+        fi
+        mkdir -p "$ZIEL_ORDNER"
+        tar -xzf "$TMP_TAR" -C "$ZIEL_ORDNER" --strip-components=1
+        rm -f "$TMP_TAR"
+    fi
+    echo "Projekt liegt jetzt unter: $ZIEL_ORDNER"
+    echo "Starte von dort weiter ..."
+    echo
+    chmod +x "$ZIEL_ORDNER/start.sh"
+    exec "$ZIEL_ORDNER/start.sh"
+fi
+
 # --- 1. Python3 vorhanden? Sonst automatisch per apt installieren ---
 if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 wurde nicht gefunden. Versuche automatische Installation..."
