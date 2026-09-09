@@ -7,90 +7,48 @@ nächste und übernächste Woche.
 
 Läuft unter **Windows und Linux**.
 
-## Installation
+## Installation: nur eine Datei ausführen
 
-**1. Virtuelle Umgebung anlegen und Abhängigkeiten installieren**
+Kein manuelles Einrichten nötig — **eine** Datei erledigt alles automatisch:
+Python-Check, virtuelle Umgebung, Abhängigkeiten, automatische Aktualisierung
+(Mo + Do, 06:00 Uhr) und den ersten Datenabruf.
 
-Windows (PowerShell, im Projektordner):
-```powershell
-python -m venv venv
-venv\Scripts\pip install -r requirements.txt
-```
+**Windows:** Doppelklick auf [`start.bat`](start.bat)
+**Linux:** im Terminal `chmod +x start.sh && ./start.sh`
 
-Linux:
-```bash
-python3 -m venv venv
-./venv/bin/pip install -r requirements.txt
-```
+Beim allerersten Ausführen dauert es ca. 1-2 Minuten (venv wird angelegt,
+Abhängigkeiten installiert, erste Programmdaten geholt). Danach öffnet sich
+automatisch der Browser mit der Übersicht unter http://127.0.0.1:5000
 
-**2. Automatische Aktualisierung einrichten** (2x pro Woche, Mo + Do 06:00 Uhr)
+**Jedes weitere Mal** einfach dieselbe Datei nochmal ausführen — bereits
+erledigte Schritte (venv, automatische Aktualisierung, Erstabruf) werden
+übersprungen, es öffnet sich nur die Web-App. Die App muss nicht dauerhaft
+laufen: einfach starten, wenn du reinschauen willst, `Strg+C` zum Beenden.
 
-Windows (PowerShell, im Projektordner):
-```powershell
-.\setup_task.ps1
-```
-Alternativ per GUI: Aufgabenplanung öffnen → Aufgabe erstellen → Trigger
-"Wöchentlich", Montag + Donnerstag, 06:00 Uhr → Aktion "Programm starten":
-`venv\Scripts\python.exe` mit Argument `scraper\run.py` und Startverzeichnis
-= Projektordner.
+Was das Skript im Detail automatisch macht:
+- prüft, ob Python vorhanden ist — falls nicht: installiert es selbst
+  (Windows: `winget`, Linux: `apt-get`, braucht dort `sudo`)
+- legt eine virtuelle Umgebung an und installiert die Abhängigkeiten
+- richtet die automatische Aktualisierung ein (Windows-Aufgabenplanung
+  bzw. Cronjob, jeweils montags + donnerstags 06:00 Uhr)
+- holt beim allerersten Start einmalig sofort die aktuellen Programmdaten,
+  damit direkt etwas zu sehen ist
+- startet die Web-App und öffnet den Browser
 
-Linux:
-```bash
-chmod +x setup_cron.sh && ./setup_cron.sh
-```
-Trägt automatisch einen Cronjob ein (mit `crontab -l` prüfbar). Voraussetzung:
-ein laufender `cron`-Dienst (bei Ubuntu/Debian/Raspberry Pi OS standardmäßig
-vorhanden).
+## Danach: eine neue Sendung hinzufügen
 
-Das war's mit der Installation — ab jetzt aktualisieren sich die Daten von
-selbst. Alles Weitere unten ist optional / für den täglichen Gebrauch.
-
----
-
-## Nach der Installation: Wie sehe ich etwas?
-
-Die Datenbank ist direkt nach der Installation noch leer — der erste
-automatische Lauf ist frühestens am nächsten Montag/Donnerstag 06:00 Uhr.
-Für sofortige Daten den Scraper **einmal manuell** anstoßen:
-
-```bash
-# Windows
-venv\Scripts\python.exe -m scraper.run
-
-# Linux
-./venv/bin/python -m scraper.run
-```
-
-Das dauert ca. 1-2 Minuten (viele Einzelseiten werden abgerufen). Ergebnis
-prüfen: `data/programm.db` sollte danach existieren, Details/Fehler stehen
-in `logs/scraper.log`.
-
-**Dann die Web-App starten**, um die Übersicht im Browser zu sehen:
-
-Windows: Doppelklick auf `start.bat` (oder `venv\Scripts\python.exe webapp\app.py`)
-Linux: `./start.sh` (oder `./venv/bin/python webapp/app.py`)
-
-Danach im Browser öffnen: **http://127.0.0.1:5000**
-
-Die Web-App muss nicht dauerhaft laufen — sie liest bei jedem Seitenaufruf
-einfach die aktuelle `data/programm.db`. Einfach starten, wenn du reinschauen
-willst, und mit `Strg+C` im Terminal wieder beenden.
-
-## Nach der Installation: Wie füge ich eine neue Sendung hinzu?
-
-Die Liste der erkannten Reality-Formate steht in `config/reality_shows.json`.
-Neue Zeile nach folgendem Muster ergänzen:
+Die Liste der erkannten Reality-Formate steht in
+[`config/reality_shows.json`](config/reality_shows.json). Neue Zeile nach
+folgendem Muster ergänzen:
 
 ```json
 { "name": "Neue Show", "aliases": ["Alternative Schreibweise"] }
 ```
 
 Speichern reicht — die Datei wird bei **jedem** Scraper-Lauf neu eingelesen,
-kein Neustart, kein Neu-Deployen nötig. Die neue Show taucht dann ab dem
-nächsten Lauf (automatisch oder manuell per `python -m scraper.run`) in der
-Web-App auf, sofern sie im gewählten 2-Wochen-Zeitraum läuft.
-
----
+kein Neustart nötig. Die neue Show taucht ab dem nächsten Lauf (automatisch
+oder durch erneutes Ausführen von `start.bat`/`start.sh`) in der Web-App auf,
+sofern sie im gewählten 2-Wochen-Zeitraum läuft.
 
 ## Architektur (kurz)
 
@@ -102,6 +60,8 @@ Web-App auf, sofern sie im gewählten 2-Wochen-Zeitraum läuft.
 - `scraper/filter.py` — Abgleich gegen `config/reality_shows.json`
 - `scraper/storage.py` — SQLite (`data/programm.db`)
 - `webapp/` — Flask-App, liest nur aus der DB
+- `start.bat` / `start.sh` — die einzige Datei, die man ausführt: Installation
+  + automatische Aktualisierung einrichten + Web-App starten, alles in einem
 
 Jede Quelle scheitert isoliert (siehe `logs/scraper.log` und die
 Status-Anzeige oben in der Web-App): Schlägt eine Quelle fehl, bleiben die
