@@ -35,20 +35,44 @@ Was das Skript im Detail automatisch macht:
   damit direkt etwas zu sehen ist
 - startet die Web-App und öffnet den Browser
 
-## Danach: eine neue Sendung hinzufügen
+## Danach: Sendungen hinzufügen oder entfernen
 
 Die Liste der erkannten Reality-Formate steht in
-[`config/reality_shows.json`](config/reality_shows.json). Neue Zeile nach
-folgendem Muster ergänzen:
+[`config/reality_shows.json`](config/reality_shows.json) — eine einfache
+Textdatei, die mit jedem Editor (z.B. Notepad, VS Code) bearbeitet wird.
+
+**Sendung hinzufügen:** neue Zeile nach folgendem Muster ergänzen:
 
 ```json
 { "name": "Neue Show", "aliases": ["Alternative Schreibweise"] }
 ```
 
-Speichern reicht — die Datei wird bei **jedem** Scraper-Lauf neu eingelesen,
-kein Neustart nötig. Die neue Show taucht ab dem nächsten Lauf (automatisch
-oder durch erneutes Ausführen von `start.bat`/`start.sh`) in der Web-App auf,
-sofern sie im gewählten 2-Wochen-Zeitraum läuft.
+`aliases` ist optional (`[]` wenn keine Alternativschreibweise bekannt ist),
+hilft aber bei Formaten, die mal mit und mal ohne Zusatz laufen (z.B.
+`"Der Bachelor"` mit Alias `"Bachelor"`).
+
+**Sendung entfernen:** den passenden Eintrag (die ganze `{ ... }`-Zeile)
+löschen. Auf ein korrektes Komma zwischen den verbleibenden Einträgen achten
+— bei der letzten Zeile vor der schließenden `]` darf **kein** Komma mehr
+stehen, sonst meldet der nächste Lauf einen JSON-Fehler.
+
+Beispiel — vorher:
+```json
+{ "name": "Big Brother", "aliases": ["Promi Big Brother"] },
+{ "name": "Love Island", "aliases": ["Love Island VIP"] },
+```
+nachher (Love Island entfernt):
+```json
+{ "name": "Big Brother", "aliases": ["Promi Big Brother"] },
+```
+
+In beiden Fällen: Speichern reicht — die Datei wird bei **jedem**
+Scraper-Lauf neu eingelesen, kein Neustart nötig. Die Änderung wirkt sich ab
+dem nächsten Lauf aus (automatisch am Mo/Do oder durch erneutes Ausführen von
+`start.bat`/`start.sh`). Wichtig beim Entfernen: bereits in `data/programm.db`
+gespeicherte, vergangene Treffer dieser Sendung verschwinden nicht rückwirkend
+aus der Datenbank, sondern werden ab dem nächsten Lauf einfach nicht mehr neu
+erkannt/aktualisiert.
 
 ## Architektur (kurz)
 
