@@ -5,6 +5,29 @@ cd /d "%~dp0"
 echo === Reality-TV Programmuebersicht ===
 echo.
 
+rem --- -1. Auf neuere Version dieser Datei pruefen und bei Bedarf selbst
+rem     aktualisieren. Ohne das wuerde eine bereits heruntergeladene/
+rem     installierte start.bat nie von spaeteren Bugfixes erfahren, egal
+rem     wie oft man sie erneut ausfuehrt. Schlaegt lautlos fehl, wenn kein
+rem     Internet verfuegbar ist (z.B. offline weiterarbeiten). ---
+set "SELBST=%~f0"
+del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
+powershell -NoProfile -Command "try { (New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.bat', '%TEMP%\rtv_start_latest.bat') } catch {}" >nul 2>nul
+if exist "%TEMP%\rtv_start_latest.bat" (
+    findstr /b /l /c:"@echo off" "%TEMP%\rtv_start_latest.bat" >nul 2>nul
+    if not errorlevel 1 (
+        fc /b "%TEMP%\rtv_start_latest.bat" "%SELBST%" >nul 2>nul
+        if errorlevel 1 (
+            echo Neuere Version gefunden - aktualisiere und starte neu...
+            copy /y "%TEMP%\rtv_start_latest.bat" "%SELBST%" >nul
+            del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
+            start "" cmd /c call "%SELBST%"
+            exit /b 0
+        )
+    )
+    del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
+)
+
 rem --- 0. Falls das Projekt (noch) nicht komplett vorhanden ist (z.B. weil nur
 rem     diese eine Datei heruntergeladen wurde): kompletten Code von GitHub
 rem     laden und von dort aus weitermachen. ---

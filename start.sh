@@ -5,9 +5,31 @@
 # erledigte Schritte uebersprungen.
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
+SELBST="$(pwd)/$(basename "${BASH_SOURCE[0]}")"
 
 echo "=== Reality-TV Programmuebersicht ==="
 echo
+
+# --- -1. Auf neuere Version dieser Datei pruefen und bei Bedarf selbst
+# aktualisieren. Ohne das wuerde eine bereits heruntergeladene/installierte
+# start.sh nie von spaeteren Bugfixes erfahren, egal wie oft man sie erneut
+# ausfuehrt. Schlaegt lautlos fehl, wenn kein Internet verfuegbar ist. ---
+TMP_SELF="$(mktemp)"
+if command -v curl >/dev/null 2>&1; then
+    curl -fsSL -o "$TMP_SELF" "https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.sh" 2>/dev/null
+elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$TMP_SELF" "https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.sh" 2>/dev/null
+fi
+if [ -s "$TMP_SELF" ] && head -1 "$TMP_SELF" | grep -q "^#!/usr/bin/env bash"; then
+    if ! cmp -s "$TMP_SELF" "$SELBST"; then
+        echo "Neuere Version gefunden - aktualisiere und starte neu..."
+        cp "$TMP_SELF" "$SELBST"
+        chmod +x "$SELBST"
+        rm -f "$TMP_SELF"
+        exec "$SELBST" "$@"
+    fi
+fi
+rm -f "$TMP_SELF"
 
 # --- 0. Falls das Projekt (noch) nicht komplett vorhanden ist (z.B. weil nur
 #     diese eine Datei heruntergeladen wurde): kompletten Code von GitHub
