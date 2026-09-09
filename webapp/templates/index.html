@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reality-TV Programm</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>Reality-TV Programmübersicht</h1>
+    <p class="subtitle">RTL · VOX · Sat.1 · ProSieben — Stand: {{ heute.strftime('%d.%m.%Y') }} · {{ anzahl_gesamt }} Sendungen gefunden</p>
+  </header>
+
+  <section class="quellen-status">
+    {% for eintrag in status %}
+      <span class="status-chip {{ 'status-ok' if eintrag.letzter_erfolg_am else 'status-fehler' }}">
+        {{ eintrag.quelle }}:
+        {% if eintrag.letzter_erfolg_am %}
+          zuletzt aktualisiert {{ eintrag.letzter_erfolg_am }}
+        {% else %}
+          Fehler seit {{ eintrag.letzter_fehler_am }} ({{ eintrag.letzter_fehler }})
+        {% endif %}
+      </span>
+    {% endfor %}
+  </section>
+
+  {% macro woche(titel, tage) %}
+    <section class="woche">
+      <h2>{{ titel }}</h2>
+      {% for tag in tage %}
+        <div class="tag">
+          <h3>{{ tag.wochentag }}, {{ tag.datum.strftime('%d.%m.%Y') }}</h3>
+          {% if tag.eintraege %}
+            <ul class="sendungen">
+              {% for e in tag.eintraege %}
+                <li class="sendung">
+                  <span class="uhrzeit">{{ e.uhrzeit }}</span>
+                  <span class="sender sender-{{ e.sender|lower|replace('.', '') }}">{{ e.sender }}</span>
+                  <span class="titel">{{ e.titel }}</span>
+                  {% if e.konfidenz == 'mittel' %}
+                    <span class="konfidenz" title="Nur von einer Quelle bestätigt">nur 1 Quelle</span>
+                  {% endif %}
+                  {% if e.beschreibung %}
+                    <p class="beschreibung">{{ e.beschreibung }}</p>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="keine-sendung">Keine bekannten Reality-Formate an diesem Tag.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </section>
+  {% endmacro %}
+
+  {{ woche("Nächste Woche", naechste_woche) }}
+  {{ woche("Übernächste Woche", uebernaechste_woche) }}
+
+  <footer>
+    <p>Läuft lokal auf deinem Rechner. Liste der erkannten Formate: <code>config/reality_shows.json</code>.</p>
+  </footer>
+</body>
+</html>

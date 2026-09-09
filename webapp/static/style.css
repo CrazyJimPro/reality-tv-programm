@@ -1,0 +1,145 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f5f5f7;
+  --fg: #1a1a1a;
+  --card-bg: #ffffff;
+  --border: #e0e0e0;
+  --muted: #6b6b6b;
+  --accent: #d81f26;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16161a;
+    --fg: #eaeaea;
+    --card-bg: #222226;
+    --border: #333338;
+    --muted: #9a9a9a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 1.5rem;
+}
+
+header h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin: 0 0 1rem 0;
+}
+
+.quellen-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.status-chip {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.status-ok { color: #1a7a3a; }
+.status-fehler { color: #b3261e; }
+
+.woche h2 {
+  margin-top: 2rem;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.25rem;
+}
+
+.tag {
+  margin: 1rem 0;
+}
+
+.tag h3 {
+  font-size: 1rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.sendungen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sendung {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  display: grid;
+  grid-template-columns: 4.5rem 6rem 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.uhrzeit { font-weight: 600; }
+
+.sender {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  background: #ddd;
+}
+
+.sender-rtl { background: #d81f26; color: white; }
+.sender-vox { background: #ffffff; color: #000; border: 1px solid #000; }
+.sender-sat1 { background: #ffcc00; color: #000; }
+.sender-prosieben { background: #e6001f; color: white; }
+
+.titel { font-weight: 500; }
+
+.konfidenz {
+  font-size: 0.7rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+}
+
+.beschreibung {
+  grid-column: 1 / -1;
+  margin: 0.3rem 0 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.keine-sendung {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+footer {
+  margin-top: 2.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+footer code {
+  background: var(--card-bg);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}

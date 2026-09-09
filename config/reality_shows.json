@@ -1,0 +1,26 @@
+{
+  "_hinweis": "Diese Liste bestimmt, welche Sendungen als 'Reality-TV' erkannt werden. Einfach neue Zeilen nach demselben Muster ergaenzen (name = Haupttitel, aliases = alternative Schreibweisen/Kurzformen). Gross-/Kleinschreibung spielt keine Rolle.",
+  "shows": [
+    { "name": "Der Bachelor", "aliases": ["Bachelor"] },
+    { "name": "Die Bachelorette", "aliases": ["Bachelorette"] },
+    { "name": "Bachelor in Paradise", "aliases": [] },
+    { "name": "Sommerhaus der Stars", "aliases": ["Das Sommerhaus der Stars"] },
+    { "name": "Kampf der Realitystars", "aliases": [] },
+    { "name": "Are You The One", "aliases": ["Are You The One?"] },
+    { "name": "Temptation Island", "aliases": ["Temptation Island VIP"] },
+    { "name": "Big Brother", "aliases": ["Promi Big Brother"] },
+    { "name": "Love Island", "aliases": ["Love Island VIP"] },
+    { "name": "Ich bin ein Star - Holt mich hier raus", "aliases": ["Dschungelcamp", "IBES"] },
+    { "name": "Promis unter Palmen", "aliases": [] },
+    { "name": "Hochzeit auf den ersten Blick", "aliases": [] },
+    { "name": "Forsthaus Rampensau", "aliases": [] },
+    { "name": "Das große Backen", "aliases": [] },
+    { "name": "The Biggest Loser", "aliases": [] },
+    { "name": "Köln 50667", "aliases": [] },
+    { "name": "Berlin - Tag & Nacht", "aliases": [] },
+    { "name": "Frauentausch", "aliases": [] },
+    { "name": "Prominent getrennt", "aliases": [] },
+    { "name": "Goodbye Deutschland", "aliases": ["Goodbye Deutschland! Die Auswanderer"] },
+    { "name": "Zuhause im Glück", "aliases": [] }
+  ]
+}
