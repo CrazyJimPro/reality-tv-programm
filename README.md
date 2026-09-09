@@ -7,45 +7,25 @@ nächste und übernächste Woche.
 
 Läuft unter **Windows und Linux**.
 
-## Einmaliges Setup
+## Installation
 
-```bash
-python3 -m venv venv
-```
+**1. Virtuelle Umgebung anlegen und Abhängigkeiten installieren**
 
-Windows:
+Windows (PowerShell, im Projektordner):
 ```powershell
+python -m venv venv
 venv\Scripts\pip install -r requirements.txt
 ```
 
 Linux:
 ```bash
+python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ```
 
-## Manuell testen
+**2. Automatische Aktualisierung einrichten** (2x pro Woche, Mo + Do 06:00 Uhr)
 
-```bash
-# Windows
-venv\Scripts\python.exe -m scraper.run
-
-# Linux
-./venv/bin/python -m scraper.run
-```
-
-Prüfen, ob Daten angekommen sind: `data/programm.db` sollte danach existieren
-und wachsen; Details/Fehler stehen in `logs/scraper.log`.
-
-## Web-App starten
-
-Windows: Doppelklick auf `start.bat` (oder `venv\Scripts\python.exe webapp\app.py`)
-Linux: `./start.sh` (oder `./venv/bin/python webapp/app.py`)
-
-Danach im Browser: http://127.0.0.1:5000
-
-## Automatische Aktualisierung einrichten (2x pro Woche, Mo + Do 06:00 Uhr)
-
-Windows (PowerShell, im Projektverzeichnis):
+Windows (PowerShell, im Projektordner):
 ```powershell
 .\setup_task.ps1
 ```
@@ -56,19 +36,61 @@ Alternativ per GUI: Aufgabenplanung öffnen → Aufgabe erstellen → Trigger
 
 Linux:
 ```bash
-./setup_cron.sh
+chmod +x setup_cron.sh && ./setup_cron.sh
 ```
-Trägt automatisch einen Cronjob ein (`crontab -l` zum Prüfen).
+Trägt automatisch einen Cronjob ein (mit `crontab -l` prüfbar). Voraussetzung:
+ein laufender `cron`-Dienst (bei Ubuntu/Debian/Raspberry Pi OS standardmäßig
+vorhanden).
 
-## Reality-Show-Liste erweitern
+Das war's mit der Installation — ab jetzt aktualisieren sich die Daten von
+selbst. Alles Weitere unten ist optional / für den täglichen Gebrauch.
 
-Neue Sendung hinzufügen: Zeile in `config/reality_shows.json` ergänzen, z.B.
+---
+
+## Nach der Installation: Wie sehe ich etwas?
+
+Die Datenbank ist direkt nach der Installation noch leer — der erste
+automatische Lauf ist frühestens am nächsten Montag/Donnerstag 06:00 Uhr.
+Für sofortige Daten den Scraper **einmal manuell** anstoßen:
+
+```bash
+# Windows
+venv\Scripts\python.exe -m scraper.run
+
+# Linux
+./venv/bin/python -m scraper.run
+```
+
+Das dauert ca. 1-2 Minuten (viele Einzelseiten werden abgerufen). Ergebnis
+prüfen: `data/programm.db` sollte danach existieren, Details/Fehler stehen
+in `logs/scraper.log`.
+
+**Dann die Web-App starten**, um die Übersicht im Browser zu sehen:
+
+Windows: Doppelklick auf `start.bat` (oder `venv\Scripts\python.exe webapp\app.py`)
+Linux: `./start.sh` (oder `./venv/bin/python webapp/app.py`)
+
+Danach im Browser öffnen: **http://127.0.0.1:5000**
+
+Die Web-App muss nicht dauerhaft laufen — sie liest bei jedem Seitenaufruf
+einfach die aktuelle `data/programm.db`. Einfach starten, wenn du reinschauen
+willst, und mit `Strg+C` im Terminal wieder beenden.
+
+## Nach der Installation: Wie füge ich eine neue Sendung hinzu?
+
+Die Liste der erkannten Reality-Formate steht in `config/reality_shows.json`.
+Neue Zeile nach folgendem Muster ergänzen:
 
 ```json
 { "name": "Neue Show", "aliases": ["Alternative Schreibweise"] }
 ```
 
-Wird beim nächsten Lauf automatisch berücksichtigt — kein Neustart nötig.
+Speichern reicht — die Datei wird bei **jedem** Scraper-Lauf neu eingelesen,
+kein Neustart, kein Neu-Deployen nötig. Die neue Show taucht dann ab dem
+nächsten Lauf (automatisch oder manuell per `python -m scraper.run`) in der
+Web-App auf, sofern sie im gewählten 2-Wochen-Zeitraum läuft.
+
+---
 
 ## Architektur (kurz)
 
@@ -84,6 +106,18 @@ Wird beim nächsten Lauf automatisch berücksichtigt — kein Neustart nötig.
 Jede Quelle scheitert isoliert (siehe `logs/scraper.log` und die
 Status-Anzeige oben in der Web-App): Schlägt eine Quelle fehl, bleiben die
 zuletzt erfolgreich gespeicherten Daten unangetastet.
+
+## Automatisierung wieder entfernen
+
+Windows:
+```powershell
+schtasks /Delete /TN RealityTV_Scraper /F
+```
+
+Linux:
+```bash
+crontab -l | grep -v '# RealityTV_Scraper' | crontab -
+```
 
 ## Wichtige Hinweise
 

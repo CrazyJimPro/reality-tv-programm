@@ -21,7 +21,7 @@ fi
 CRON_ZEILE="0 6 * * 1,4 $VENV_PYTHON $PROJEKT_PFAD/scraper/run.py >> $PROJEKT_PFAD/logs/cron.log 2>&1"
 MARKER="# RealityTV_Scraper"
 
-( crontab -l 2>/dev/null | grep -v "$MARKER" ; echo "$CRON_ZEILE $MARKER" ) | crontab -
+( crontab -l 2>/dev/null | grep -v "$MARKER" || true ; echo "$CRON_ZEILE $MARKER" ) | crontab -
 
 echo "Cronjob eingerichtet: laeuft montags + donnerstags um 06:00 Uhr."
 echo "Pruefen mit: crontab -l"
