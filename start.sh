@@ -85,10 +85,20 @@ fi
 # In beiden Faellen wird der KOMPLETTE Code von GitHub aufgefrischt (nicht
 # nur start.sh), venv/data/logs bleiben dabei unberuehrt (die liegen nicht
 # im heruntergeladenen Quellcode). ---
+# WICHTIG: Laeuft dieses Skript AUS dem Ordner, der aufgefrischt wird, darf
+# es sich dabei nicht selbst ueberschreiben - die Shell liest ein Skript
+# waehrend der Ausfuehrung weiter von der Platte (an der zuletzt erreichten
+# Byte-Position). Wird es unter den Fuessen ausgetauscht, laeuft danach ein
+# wilder Mix aus alter und neuer Datei. Deshalb wird start.sh in diesem Fall
+# ausgelassen, die neue Fassung nach /tmp gelegt und von dort neu gestartet -
+# die frischt den Ordner dann komplett auf (dann laeuft ja keine Datei mehr
+# aus dem Zielordner).
 if [ -f "requirements.txt" ]; then
     PROJEKT_ZIEL="$(pwd)"
+    EIGENER_ORDNER=1
 else
     PROJEKT_ZIEL="$ZIEL_ORDNER"
+    EIGENER_ORDNER=""
 fi
 
 MUSS_LADEN=""
@@ -115,8 +125,19 @@ if [ -n "$MUSS_LADEN" ]; then
         exit 1
     fi
     mkdir -p "$PROJEKT_ZIEL"
-    tar -xzf "$TMP_TAR" -C "$PROJEKT_ZIEL" --strip-components=1
+    TMP_DIR="$(mktemp -d)"
+    tar -xzf "$TMP_TAR" -C "$TMP_DIR" --strip-components=1
     rm -f "$TMP_TAR"
+    if [ -n "$EIGENER_ORDNER" ]; then
+        NEUSTART_DATEI="$(mktemp /tmp/rtv_start_neu.XXXXXX.sh)"
+        cp "$TMP_DIR/start.sh" "$NEUSTART_DATEI"
+        chmod +x "$NEUSTART_DATEI"
+        rm -f "$TMP_DIR/start.sh"
+    else
+        NEUSTART_DATEI="$PROJEKT_ZIEL/start.sh"
+    fi
+    cp -r "$TMP_DIR/." "$PROJEKT_ZIEL/"
+    rm -rf "$TMP_DIR"
 
     if [ "$(pwd)" != "$PROJEKT_ZIEL" ]; then
         echo "Projekt liegt jetzt unter: $PROJEKT_ZIEL"
@@ -129,8 +150,8 @@ if [ -n "$MUSS_LADEN" ]; then
 
     echo "Starte neu ..."
     echo
-    chmod +x "$PROJEKT_ZIEL/start.sh"
-    exec "$PROJEKT_ZIEL/start.sh" "$@"
+    chmod +x "$NEUSTART_DATEI"
+    exec "$NEUSTART_DATEI" "$@"
 fi
 
 # --- 0.5 Welcher Stand laeuft hier? Steht auch in logs/start.log und oben

@@ -54,10 +54,23 @@ rem     wurde heruntergeladen), oder weil Schritt -1 eine neuere Version
 rem     gefunden hat. In beiden Faellen wird der KOMPLETTE Code von GitHub
 rem     aufgefrischt (nicht nur start.bat), venv/data/logs bleiben dabei
 rem     unberuehrt (die liegen nicht im heruntergeladenen Quellcode). ---
+rem     WICHTIG: Laeuft dieses Skript AUS dem Ordner, der aufgefrischt wird,
+rem     darf es sich dabei nicht selbst ueberschreiben - cmd.exe liest eine
+rem     Batchdatei waehrend der Ausfuehrung immer wieder von der Platte
+rem     (an der zuletzt erreichten Byte-Position). Wird sie unter den Fuessen
+rem     ausgetauscht, laeuft danach ein wilder Mix aus alter und neuer Datei.
+rem     Deshalb: start.bat/start_versteckt.bat in diesem Fall auslassen, die
+rem     neue start.bat nach %TEMP% legen und von dort neu starten - der
+rem     Neustart aus %TEMP% frischt den Ordner dann komplett auf (dann laeuft
+rem     ja keine Datei mehr aus dem Zielordner).
 if exist "requirements.txt" (
     set "PROJEKT_ZIEL=%cd%"
+    set "EIGENEN_ORDNER=1"
+    set "NEUSTART_DATEI=%TEMP%\rtv_start_neu.bat"
 ) else (
     set "PROJEKT_ZIEL=%ZIEL_ORDNER%"
+    set "EIGENEN_ORDNER="
+    set "NEUSTART_DATEI=%ZIEL_ORDNER%\start.bat"
 )
 
 set "MUSS_LADEN="
@@ -74,7 +87,11 @@ if defined MUSS_LADEN (
         echo Invoke-WebRequest -Uri 'https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.zip' -OutFile "$env:TEMP\rtv.zip"
         echo Expand-Archive -Path "$env:TEMP\rtv.zip" -DestinationPath "$env:TEMP\rtv-extract" -Force
         echo New-Item -ItemType Directory -Force -Path '%PROJEKT_ZIEL%' ^| Out-Null
-        echo Copy-Item -Path "$env:TEMP\rtv-extract\reality-tv-programm-main\*" -Destination '%PROJEKT_ZIEL%' -Recurse -Force
+        echo $quelle = "$env:TEMP\rtv-extract\reality-tv-programm-main"
+        echo $ausnahmen = @^(^)
+        echo if ^('%EIGENEN_ORDNER%' -eq '1'^) { $ausnahmen = @^('start.bat','start_versteckt.bat'^) }
+        echo Get-ChildItem -Path $quelle -Force ^| Where-Object { $ausnahmen -notcontains $_.Name } ^| Copy-Item -Destination '%PROJEKT_ZIEL%' -Recurse -Force
+        echo if ^($ausnahmen.Count -gt 0^) { Copy-Item -Path ^(Join-Path $quelle 'start.bat'^) -Destination "$env:TEMP\rtv_start_neu.bat" -Force }
         echo Remove-Item "$env:TEMP\rtv.zip","$env:TEMP\rtv-extract" -Recurse -Force
     )
     powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_download.ps1"
@@ -99,7 +116,7 @@ if defined MUSS_LADEN (
 
     echo Starte neu ...
     echo.
-    start "" cmd /c call "%PROJEKT_ZIEL%\start.bat"
+    start "" cmd /c call "!NEUSTART_DATEI!"
     exit /b 0
 )
 
