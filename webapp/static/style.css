@@ -6,6 +6,9 @@
   --border: #e0e0e0;
   --muted: #6b6b6b;
   --accent: #d81f26;
+  /* Linkfarbe: ohne eigene Regel nahm der Browser sein Standardblau, das im
+     Dunkelmodus auf dunklem Grund kaum zu lesen war. */
+  --link: #0b57d0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -15,6 +18,7 @@
     --card-bg: #222226;
     --border: #333338;
     --muted: #9a9a9a;
+    --link: #8ab4f8;
   }
 }
 
@@ -26,6 +30,7 @@
   --card-bg: #222226;
   --border: #333338;
   --muted: #9a9a9a;
+  --link: #8ab4f8;
 }
 
 :root[data-theme="light"] {
@@ -34,6 +39,7 @@
   --card-bg: #ffffff;
   --border: #e0e0e0;
   --muted: #6b6b6b;
+  --link: #0b57d0;
 }
 
 * { box-sizing: border-box; }
@@ -184,6 +190,20 @@ footer code {
   align-items: center;
   gap: 0.8rem;
   flex-wrap: wrap;
+}
+
+/* "zurueck zur Uebersicht": etwas groesser und in einer Farbe, die auch auf
+   dunklem Grund gut lesbar ist. */
+.nav-back a:not(.verwalten-button) {
+  color: var(--link);
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav-back a:not(.verwalten-button):hover,
+.nav-back a:not(.verwalten-button):focus-visible {
+  text-decoration: underline;
 }
 
 .theme-toggle {
