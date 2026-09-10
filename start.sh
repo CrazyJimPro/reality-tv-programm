@@ -7,6 +7,12 @@ set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 SELBST="$(pwd)/$(basename "${BASH_SOURCE[0]}")"
 
+# Alles, was ab hier ausgegeben wird, landet zusaetzlich in logs/start.log -
+# wichtig, wenn per Desktop-Verknuepfung ohne sichtbares Terminal gestartet
+# wird (dann gibt es sonst gar keine Rueckmeldung mehr bei einem Fehler).
+mkdir -p logs
+exec > >(tee logs/start.log) 2>&1
+
 echo "=== Reality-TV Programmuebersicht ==="
 echo
 
@@ -137,10 +143,42 @@ if [ ! -f "data/programm.db" ]; then
     "$VENV_PYTHON" -m scraper.run
 fi
 
-# --- 5. Web-App starten und Browser oeffnen ---
+# --- 4.5 Desktop-Verknuepfung anlegen, falls noch nicht vorhanden - startet
+# kuenftig per Doppelklick ohne sichtbares Terminal (Terminal=false), alle
+# Meldungen landen trotzdem in logs/start.log (siehe oben). ---
+DESKTOP_ORDNER="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")"
+DESKTOP_DATEI="$DESKTOP_ORDNER/reality-tv-programm.desktop"
+if [ -d "$DESKTOP_ORDNER" ] && [ ! -f "$DESKTOP_DATEI" ]; then
+    echo "Richte Desktop-Verknuepfung ein..."
+    cat > "$DESKTOP_DATEI" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Reality-TV Programm
+Comment=Reality-TV Programmuebersicht starten
+Exec=$PROJEKT_PFAD/start.sh
+Path=$PROJEKT_PFAD
+Terminal=false
+Icon=video-television
+EOF
+    chmod +x "$DESKTOP_DATEI"
+    # Manche Dateimanager (z.B. GNOME Files) verlangen beim ersten Start
+    # zusaetzlich eine "Vertrauen"-Markierung, sonst kommt eine Rueckfrage.
+    gio set "$DESKTOP_DATEI" metadata::trusted true 2>/dev/null || true
+fi
+
+# --- 5. Web-App starten und Browser oeffnen (nur falls nicht schon eine
+# laeuft - sonst Port-Konflikt, z.B. bei erneutem Klick auf die
+# Desktop-Verknuepfung waehrend die App schon offen ist) ---
+if curl -s -o /dev/null --connect-timeout 1 http://127.0.0.1:5000/ 2>/dev/null; then
+    echo "Web-App laeuft bereits - oeffne Browser ..."
+    xdg-open http://127.0.0.1:5000 >/dev/null 2>&1 || true
+    exit 0
+fi
+
 echo
 echo "Oeffne http://127.0.0.1:5000 im Browser ..."
-echo "Zum Beenden Strg+C druecken."
+echo "Zum Beenden Strg+C druecken (oder den Python-Prozess beenden, falls"
+echo "per Desktop-Verknuepfung ohne sichtbares Terminal gestartet)."
 echo
 ( sleep 1 && xdg-open http://127.0.0.1:5000 >/dev/null 2>&1 || true ) &
 "$VENV_PYTHON" webapp/app.py

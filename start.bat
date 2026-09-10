@@ -170,10 +170,43 @@ if not exist "data\programm.db" (
     venv\Scripts\python.exe -m scraper.run
 )
 
-rem --- 5. Web-App starten und Browser oeffnen ---
+rem --- 4.5 Desktop-Verknuepfung anlegen, falls noch nicht vorhanden - startet
+rem     kuenftig per Doppelklick ohne sichtbares Konsolenfenster (siehe
+rem     start_versteckt.bat/.vbs). Alle Meldungen landen dabei in
+rem     logs\start.log, falls doch mal was schiefgeht. ---
+if not exist "%USERPROFILE%\Desktop\Reality-TV Programm.lnk" (
+    echo Richte Desktop-Verknuepfung ein...
+    > "%TEMP%\rtv_shortcut.ps1" (
+        echo $WshShell = New-Object -ComObject WScript.Shell
+        echo $Shortcut = $WshShell.CreateShortcut^('%USERPROFILE%\Desktop\Reality-TV Programm.lnk'^)
+        echo $Shortcut.TargetPath = '%~dp0start_versteckt.vbs'
+        echo $Shortcut.WorkingDirectory = '%~dp0'
+        echo $Shortcut.Description = 'Reality-TV Programmuebersicht starten'
+        echo $Shortcut.Save^(^)
+    )
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_shortcut.ps1" >nul 2>nul
+    del "%TEMP%\rtv_shortcut.ps1" >nul 2>nul
+)
+
+rem --- 5. Web-App starten und Browser oeffnen (nur falls nicht schon eine
+rem     laeuft - sonst Port-Konflikt, z.B. bei erneutem Klick auf die
+rem     Desktop-Verknuepfung waehrend die App schon offen ist). Der
+rem     Zustandstext in der netstat-Ausgabe ist sprachabhaengig (z.B.
+rem     "LISTENING" vs. "ABHOEREN" auf deutschem Windows) - deshalb wird
+rem     stattdessen direkt geprueft, ob 5000 als LOKALE Adresse auftaucht
+rem     (2. Spalte), unabhaengig vom Zustandstext. ---
+netstat -ano | findstr /r /c:"^ *TCP *[^ ]*:5000 " >nul 2>nul
+if not errorlevel 1 (
+    echo Web-App laeuft bereits - oeffne Browser ...
+    start "" http://127.0.0.1:5000
+    exit /b 0
+)
+
 echo.
 echo Oeffne http://127.0.0.1:5000 im Browser ...
-echo Zum Beenden dieses Fenster schliessen oder Strg+C druecken.
+echo Zum Beenden dieses Fenster schliessen oder Strg+C druecken ^(oder den
+echo Python-Prozess im Task-Manager beenden, falls per Desktop-Verknuepfung
+echo ohne sichtbares Fenster gestartet^).
 echo.
 start "" http://127.0.0.1:5000
 venv\Scripts\python.exe webapp\app.py

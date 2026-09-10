@@ -30,11 +30,18 @@ und der erste Datenabruf — alles automatisch, ca. 1-2 Minuten beim
 allerersten Mal. Danach öffnet sich automatisch der Browser mit der
 Übersicht unter http://127.0.0.1:5000
 
-**Jedes weitere Mal** einfach dieselbe Datei nochmal ausführen (oder direkt
-`start.bat`/`start.sh` im installierten Ordner) — bereits erledigte Schritte
-werden übersprungen, es öffnet sich nur die Web-App. Die App muss nicht
-dauerhaft laufen: einfach starten, wenn du reinschauen willst, `Strg+C` zum
-Beenden.
+**Beim ersten Lauf wird außerdem automatisch eine Desktop-Verknüpfung
+angelegt** ("Reality-TV Programm") — ab dann reicht ein Doppelklick darauf,
+komplett **ohne sichtbares Konsolen-/Terminalfenster**. Alle Meldungen
+landen dabei in `logs/start.log`, falls doch mal etwas schiefgeht. Läuft die
+Web-App schon (z.B. weil die Verknüpfung versehentlich zweimal angeklickt
+wurde), öffnet ein erneuter Klick einfach nur den Browser erneut, statt
+einen zweiten Prozess zu starten. Zum Beenden: Python-Prozess im
+Task-Manager (Windows) bzw. `pkill -f webapp/app.py` (Linux) — oder einfach
+laufen lassen, das ist unproblematisch.
+
+Die App muss nicht dauerhaft laufen: einfach starten, wenn du reinschauen
+willst.
 
 Was das Skript im Detail automatisch macht:
 - lädt bei Bedarf den Rest des Projekts von GitHub herunter (nur beim
@@ -46,7 +53,9 @@ Was das Skript im Detail automatisch macht:
   bzw. Cronjob, jeweils montags + donnerstags 06:00 Uhr)
 - holt beim allerersten Start einmalig sofort die aktuellen Programmdaten,
   damit direkt etwas zu sehen ist
-- startet die Web-App und öffnet den Browser
+- legt eine Desktop-Verknüpfung an (falls noch nicht vorhanden)
+- startet die Web-App und öffnet den Browser (ohne sichtbares Fenster, wenn
+  über die Desktop-Verknüpfung gestartet)
 
 *(Wer lieber das ganze Repo selbst klont/als ZIP lädt, kann das natürlich
 auch tun — `start.bat`/`start.sh` erkennen dann, dass der Rest schon da ist,
@@ -135,7 +144,12 @@ nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
   (Knopf "Jetzt aktualisieren" auf der Startseite; wird beim Speichern in
   `/einstellungen` automatisch mit ausgelöst)
 - `start.bat` / `start.sh` — die einzige Datei, die man ausführt: Installation
-  + automatische Aktualisierung einrichten + Web-App starten, alles in einem
+  + automatische Aktualisierung einrichten + Desktop-Verknüpfung anlegen +
+  Web-App starten, alles in einem
+- `start_versteckt.bat` / `start_versteckt.vbs` (nur Windows) — Ziel der
+  Desktop-Verknüpfung: ruft `start.bat` ohne sichtbares Konsolenfenster auf
+  und leitet alle Meldungen nach `logs/start.log` um (unter Linux reicht
+  dafür `Terminal=false` in der `.desktop`-Datei, kein Hilfsskript nötig)
 
 Jede Quelle scheitert isoliert (siehe `logs/scraper.log` und die
 Status-Anzeige oben in der Web-App): Schlägt eine Quelle fehl, bleiben die
