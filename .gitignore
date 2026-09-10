@@ -3,3 +3,9 @@ data/*.db
 logs/*.log
 __pycache__/
 *.pyc
+
+# Nutzer-editierte, aktive Sendungsliste - NICHT versionieren, sonst
+# ueberschreibt jede Projekt-Auffrischung (start.bat/start.sh Selbst-Update)
+# die persoenliche Auswahl des Nutzers mit der Standardvorlage. Die Vorlage
+# selbst heisst config/reality_shows.default.json und bleibt versioniert.
+config/reality_shows.json

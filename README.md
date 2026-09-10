@@ -117,7 +117,10 @@ nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
   (Sat.1/ProSieben laufen inzwischen über Joyn, das selbst keine brauchbare
   mehrtägige Programmübersicht mehr bietet — deshalb hier die einzige Quelle für diese beiden)
 - `scraper/merge.py` — führt Duplikate aus beiden Quellen zusammen
-- `scraper/filter.py` — Abgleich gegen `config/reality_shows.json`
+- `scraper/filter.py` — Abgleich gegen `config/reality_shows.json` (wird
+  beim allerersten Mal automatisch aus `config/reality_shows.default.json`
+  angelegt; die Live-Datei ist bewusst nicht im Git-Repo verfolgt, damit
+  eine Projekt-Auffrischung durch das Selbst-Update sie nie überschreibt)
 - `scraper/storage.py` — SQLite (`data/programm.db`)
 - `webapp/` — Flask-App: `/` zeigt die Programmübersicht (liest nur aus der
   DB; extrahiert per Regex "Staffel X"/"Folge Y" aus dem Beschreibungstext,

@@ -10,6 +10,7 @@ from scraper.merge import MergedEintrag
 
 PROJEKT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PFAD = PROJEKT_ROOT / "config" / "reality_shows.json"
+CONFIG_VORLAGE_PFAD = PROJEKT_ROOT / "config" / "reality_shows.default.json"
 
 AEHNLICHKEIT_SCHWELLE = 88
 
@@ -19,6 +20,14 @@ def _normalisiert(text: str) -> str:
 
 
 def lade_shows_config(config_pfad: Path = CONFIG_PFAD) -> dict:
+    """Laedt die aktive Sendungsliste. Existiert sie noch nicht (frische
+    Installation), wird sie einmalig aus der versionierten Vorlage
+    reality_shows.default.json angelegt. config_pfad selbst ist bewusst
+    NICHT im Git-Repo verfolgt (siehe .gitignore) - so ueberschreibt eine
+    Projekt-Auffrischung (Selbst-Update von start.bat/start.sh) niemals
+    die persoenliche Auswahl des Nutzers."""
+    if not config_pfad.exists() and CONFIG_VORLAGE_PFAD.exists():
+        config_pfad.write_text(CONFIG_VORLAGE_PFAD.read_text(encoding="utf-8"), encoding="utf-8")
     return json.loads(config_pfad.read_text(encoding="utf-8"))
 
 
