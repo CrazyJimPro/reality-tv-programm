@@ -200,7 +200,10 @@ if not errorlevel 1 (
     rem Auch beim Klick auf die Verknuepfung waehrend die App schon laeuft
     rem sollen frische Daten geholt werden. Der Aufruf kommt sofort zurueck,
     rem der Lauf selbst passiert im Hintergrund der App.
-    powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Method POST -Uri 'http://127.0.0.1:5000/aktualisieren' -TimeoutSec 10 ^| Out-Null } catch { }" >nul 2>nul
+    rem Kein "| Out-Null" verwenden: das Pipe-Zeichen wird in einer
+    rem Klammer-Gruppe von cmd.exe auch innerhalb der Anfuehrungszeichen
+    rem zickig behandelt - Zuweisung an $null tut dasselbe ohne Pipe.
+    powershell -NoProfile -Command "try { $null = Invoke-WebRequest -UseBasicParsing -Method POST -Uri 'http://127.0.0.1:5000/aktualisieren' -TimeoutSec 10 } catch { }" >nul 2>nul
     start "" http://127.0.0.1:5000
     exit /b 0
 )
