@@ -138,6 +138,9 @@ if [ -n "$MUSS_LADEN" ]; then
     fi
     cp -r "$TMP_DIR/." "$PROJEKT_ZIEL/"
     rm -rf "$TMP_DIR"
+    # Ausfuehrbar-Recht sicherstellen: aus einem heruntergeladenen Archiv kann
+    # es fehlen, und dann startet die Desktop-Verknuepfung nicht mehr.
+    chmod +x "$PROJEKT_ZIEL/start.sh" 2>/dev/null || true
 
     if [ "$(pwd)" != "$PROJEKT_ZIEL" ]; then
         echo "Projekt liegt jetzt unter: $PROJEKT_ZIEL"
