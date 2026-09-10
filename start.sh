@@ -10,10 +10,16 @@ SELBST="$(pwd)/$(basename "${BASH_SOURCE[0]}")"
 echo "=== Reality-TV Programmuebersicht ==="
 echo
 
-# --- -1. Auf neuere Version dieser Datei pruefen und bei Bedarf selbst
-# aktualisieren. Ohne das wuerde eine bereits heruntergeladene/installierte
-# start.sh nie von spaeteren Bugfixes erfahren, egal wie oft man sie erneut
-# ausfuehrt. Schlaegt lautlos fehl, wenn kein Internet verfuegbar ist. ---
+ZIEL_ORDNER="$HOME/reality-tv-programm"
+
+# --- -1. Pruefen, ob auf GitHub eine neuere start.sh liegt. Wird eine
+# gefunden, wird NICHT nur diese eine Datei ersetzt, sondern (in Schritt 0)
+# das GESAMTE Projekt frisch nachgeladen - sonst wuerde der Rest des Codes
+# (webapp/, scraper/, ...) einer bereits installierten Kopie fuer immer auf
+# dem Stand der Erstinstallation haengen bleiben, selbst wenn sich start.sh
+# "selbst aktualisiert". Schlaegt lautlos fehl, wenn kein Internet
+# verfuegbar ist (alte Version laeuft dann einfach weiter). ---
+NEUERE_VERSION_GEFUNDEN=""
 TMP_SELF="$(mktemp)"
 if command -v curl >/dev/null 2>&1; then
     curl -fsSL -o "$TMP_SELF" "https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.sh" 2>/dev/null
@@ -22,48 +28,61 @@ elif command -v wget >/dev/null 2>&1; then
 fi
 if [ -s "$TMP_SELF" ] && head -1 "$TMP_SELF" | grep -q "^#!/usr/bin/env bash"; then
     if ! cmp -s "$TMP_SELF" "$SELBST"; then
-        echo "Neuere Version gefunden - aktualisiere und starte neu..."
-        cp "$TMP_SELF" "$SELBST"
-        chmod +x "$SELBST"
-        rm -f "$TMP_SELF"
-        exec "$SELBST" "$@"
+        NEUERE_VERSION_GEFUNDEN=1
     fi
+else
+    echo "Selbst-Update-Pruefung fehlgeschlagen (kein Internet oder Netzwerk blockiert) - fahre mit der vorhandenen Version fort."
 fi
 rm -f "$TMP_SELF"
 
-# --- 0. Falls das Projekt (noch) nicht komplett vorhanden ist (z.B. weil nur
-#     diese eine Datei heruntergeladen wurde): kompletten Code von GitHub
-#     laden und von dort aus weitermachen. ---
-ZIEL_ORDNER="$HOME/reality-tv-programm"
-if [ ! -f "requirements.txt" ] && [ "$(pwd)" != "$ZIEL_ORDNER" ]; then
-    if [ ! -f "$ZIEL_ORDNER/requirements.txt" ]; then
-        echo "Projekt-Dateien nicht gefunden - lade komplettes Projekt von GitHub herunter..."
-        TMP_TAR="$(mktemp)"
-        if command -v curl >/dev/null 2>&1; then
-            curl -fsSL -o "$TMP_TAR" "https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.tar.gz"
-        elif command -v wget >/dev/null 2>&1; then
-            wget -q -O "$TMP_TAR" "https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.tar.gz"
-        else
-            echo "Fehler: weder curl noch wget gefunden."
-            echo "Bitte eines davon installieren oder das Repo manuell laden:"
-            echo "https://github.com/CrazyJimPro/reality-tv-programm"
-            exit 1
-        fi
-        if [ ! -s "$TMP_TAR" ]; then
-            echo "Fehler beim Herunterladen. Bitte Internetverbindung pruefen,"
-            echo "oder das Repo manuell laden: https://github.com/CrazyJimPro/reality-tv-programm"
-            rm -f "$TMP_TAR"
-            exit 1
-        fi
-        mkdir -p "$ZIEL_ORDNER"
-        tar -xzf "$TMP_TAR" -C "$ZIEL_ORDNER" --strip-components=1
-        rm -f "$TMP_TAR"
+# --- 0. Projektordner bestimmen und bei Bedarf (neu) laden: entweder weil
+# hier noch gar kein komplettes Projekt liegt (nur diese eine Datei wurde
+# heruntergeladen), oder weil Schritt -1 eine neuere Version gefunden hat.
+# In beiden Faellen wird der KOMPLETTE Code von GitHub aufgefrischt (nicht
+# nur start.sh), venv/data/logs bleiben dabei unberuehrt (die liegen nicht
+# im heruntergeladenen Quellcode). ---
+if [ -f "requirements.txt" ]; then
+    PROJEKT_ZIEL="$(pwd)"
+else
+    PROJEKT_ZIEL="$ZIEL_ORDNER"
+fi
+
+MUSS_LADEN=""
+[ -f "requirements.txt" ] || MUSS_LADEN=1
+[ -n "$NEUERE_VERSION_GEFUNDEN" ] && MUSS_LADEN=1
+
+if [ -n "$MUSS_LADEN" ]; then
+    echo "Lade aktuellen Projektstand von GitHub (Code + Web-App werden aufgefrischt)..."
+    TMP_TAR="$(mktemp)"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL -o "$TMP_TAR" "https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.tar.gz"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q -O "$TMP_TAR" "https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.tar.gz"
+    else
+        echo "Fehler: weder curl noch wget gefunden."
+        echo "Bitte eines davon installieren oder das Repo manuell laden:"
+        echo "https://github.com/CrazyJimPro/reality-tv-programm"
+        exit 1
     fi
-    echo "Projekt liegt jetzt unter: $ZIEL_ORDNER"
-    echo "Starte von dort weiter ..."
+    if [ ! -s "$TMP_TAR" ]; then
+        echo "Fehler beim Herunterladen. Bitte Internetverbindung pruefen,"
+        echo "oder das Repo manuell laden: https://github.com/CrazyJimPro/reality-tv-programm"
+        rm -f "$TMP_TAR"
+        exit 1
+    fi
+    mkdir -p "$PROJEKT_ZIEL"
+    tar -xzf "$TMP_TAR" -C "$PROJEKT_ZIEL" --strip-components=1
+    rm -f "$TMP_TAR"
+
+    if [ "$(pwd)" != "$PROJEKT_ZIEL" ]; then
+        echo "Projekt liegt jetzt unter: $PROJEKT_ZIEL"
+    else
+        echo "Projekt aufgefrischt."
+    fi
+    echo "Starte neu ..."
     echo
-    chmod +x "$ZIEL_ORDNER/start.sh"
-    exec "$ZIEL_ORDNER/start.sh"
+    chmod +x "$PROJEKT_ZIEL/start.sh"
+    exec "$PROJEKT_ZIEL/start.sh" "$@"
 fi
 
 # --- 1. Python3 vorhanden? Sonst automatisch per apt installieren ---

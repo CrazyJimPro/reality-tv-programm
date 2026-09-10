@@ -162,12 +162,21 @@ crontab -l | grep -v '# RealityTV_Scraper' | crontab -
   Meldung trotzdem erscheint, hilft meist ein manueller Python-Download von
   https://www.python.org/downloads/ (dabei "Add python.exe to PATH"
   anhaken) und `start.bat` danach in einem neuen Terminal erneut starten.
-- **"Selbst-Update-Prüfung fehlgeschlagen" oder Skript aktualisiert sich
-  nicht, obwohl es neuere Versionen gibt:** meist ein TLS-Problem auf älteren
-  Windows-Installationen (Windows nutzt für HTTPS-Verbindungen aus der
-  Kommandozeile standardmäßig teils noch TLS 1.0/1.1, GitHub verlangt aber
-  TLS 1.2 — ab dieser Version wird das automatisch erzwungen). Zeigt die
-  Meldung trotzdem "fehlgeschlagen": Internetverbindung/Firewall/Proxy auf
-  der VM prüfen, ob `raw.githubusercontent.com` erreichbar ist. Als
-  Notlösung hilft immer: aktuelle `start.bat` manuell neu herunterladen
-  (https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.bat).
+- **"Selbst-Update-Prüfung fehlgeschlagen":** meist ein TLS-Problem auf
+  älteren Windows-Installationen (Windows nutzt für HTTPS-Verbindungen aus
+  der Kommandozeile standardmäßig teils noch TLS 1.0/1.1, GitHub verlangt
+  aber TLS 1.2 — wird inzwischen automatisch erzwungen). Zeigt die Meldung
+  trotzdem "fehlgeschlagen": Internetverbindung/Firewall/Proxy prüfen, ob
+  `raw.githubusercontent.com` erreichbar ist.
+- **Skript wirkt "wie eingefroren" auf altem Stand, obwohl start.bat/
+  start.sh neu heruntergeladen wurde:** ab dieser Version wird bei
+  erkannter neuerer Version nicht mehr nur die Einstiegsdatei ersetzt,
+  sondern das **komplette Projekt** (`%USERPROFILE%\reality-tv-programm`
+  bzw. `~/reality-tv-programm`) frisch nachgeladen — vorher blieb eine
+  bereits installierte Kopie für immer auf dem Stand der Erstinstallation
+  hängen, egal wie oft man die einzelne Datei erneut herunterlud. Als
+  Notlösung hilft immer: aktuelle `start.bat`/`start.sh` manuell neu
+  herunterladen (https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.bat)
+  und den installierten Ordner (`%USERPROFILE%\reality-tv-programm` bzw.
+  `~/reality-tv-programm`) zur Sicherheit einmal komplett löschen, bevor
+  man sie erneut ausführt.

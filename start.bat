@@ -5,12 +5,18 @@ cd /d "%~dp0"
 echo === Reality-TV Programmuebersicht ===
 echo.
 
-rem --- -1. Auf neuere Version dieser Datei pruefen und bei Bedarf selbst
-rem     aktualisieren. Ohne das wuerde eine bereits heruntergeladene/
-rem     installierte start.bat nie von spaeteren Bugfixes erfahren, egal
-rem     wie oft man sie erneut ausfuehrt. Schlaegt nicht mehr lautlos fehl,
-rem     sondern meldet sich, wenn kein Internet/TLS-Verbindung klappt. ---
 set "SELBST=%~f0"
+set "ZIEL_ORDNER=%USERPROFILE%\reality-tv-programm"
+
+rem --- -1. Pruefen, ob auf GitHub eine neuere start.bat liegt. Wird eine
+rem     gefunden, wird NICHT nur diese eine Datei ersetzt, sondern (in
+rem     Schritt 0) das GESAMTE Projekt frisch nachgeladen - sonst wuerde
+rem     der Rest des Codes (webapp/, scraper/, ...) einer bereits
+rem     installierten Kopie fuer immer auf dem Stand der Erstinstallation
+rem     haengen bleiben, selbst wenn sich start.bat "selbst aktualisiert".
+rem     Schlaegt nicht mehr lautlos fehl, sondern meldet sich, wenn kein
+rem     Internet/TLS-Verbindung klappt. ---
+set "NEUERE_VERSION_GEFUNDEN="
 del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
 > "%TEMP%\rtv_selfupdate.ps1" (
     echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -26,13 +32,7 @@ if exist "%TEMP%\rtv_start_latest.bat" (
     findstr /b /l /c:"@echo off" "%TEMP%\rtv_start_latest.bat" >nul 2>nul
     if not errorlevel 1 (
         fc /b "%TEMP%\rtv_start_latest.bat" "%SELBST%" >nul 2>nul
-        if errorlevel 1 (
-            echo Neuere Version gefunden - aktualisiere und starte neu...
-            copy /y "%TEMP%\rtv_start_latest.bat" "%SELBST%" >nul
-            del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
-            start "" cmd /c call "%SELBST%"
-            exit /b 0
-        )
+        if errorlevel 1 set "NEUERE_VERSION_GEFUNDEN=1"
     ) else (
         echo Selbst-Update-Pruefung: heruntergeladene Datei sieht beschaedigt aus, ignoriere sie.
     )
@@ -41,41 +41,54 @@ if exist "%TEMP%\rtv_start_latest.bat" (
     echo Selbst-Update-Pruefung fehlgeschlagen ^(kein Internet oder Netzwerk/Firewall blockiert^) - fahre mit der vorhandenen Version fort.
 )
 
-rem --- 0. Falls das Projekt (noch) nicht komplett vorhanden ist (z.B. weil nur
-rem     diese eine Datei heruntergeladen wurde): kompletten Code von GitHub
-rem     laden und von dort aus weitermachen. ---
-set "ZIEL_ORDNER=%USERPROFILE%\reality-tv-programm"
-if not exist "requirements.txt" (
-    if /I not "%cd%"=="%ZIEL_ORDNER%" (
-        if not exist "%ZIEL_ORDNER%\requirements.txt" (
-            echo Projekt-Dateien nicht gefunden - lade komplettes Projekt von GitHub herunter...
-            rem PowerShell-Logik in eine temporaere .ps1-Datei schreiben statt als
-            rem Inline-Befehl - vermeidet fragile verschachtelte Anfuehrungszeichen.
-            > "%TEMP%\rtv_download.ps1" (
-                echo $ErrorActionPreference = 'Stop'
-                echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-                echo Invoke-WebRequest -Uri 'https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.zip' -OutFile "$env:TEMP\rtv.zip"
-                echo Expand-Archive -Path "$env:TEMP\rtv.zip" -DestinationPath "$env:TEMP\rtv-extract" -Force
-                echo New-Item -ItemType Directory -Force -Path '%ZIEL_ORDNER%' ^| Out-Null
-                echo Copy-Item -Path "$env:TEMP\rtv-extract\reality-tv-programm-main\*" -Destination '%ZIEL_ORDNER%' -Recurse -Force
-                echo Remove-Item "$env:TEMP\rtv.zip","$env:TEMP\rtv-extract" -Recurse -Force
-            )
-            powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_download.ps1"
-            if errorlevel 1 (
-                del "%TEMP%\rtv_download.ps1" >nul 2>nul
-                echo Fehler beim Herunterladen/Entpacken. Bitte Internetverbindung pruefen,
-                echo oder das Repo manuell laden: https://github.com/CrazyJimPro/reality-tv-programm
-                pause
-                exit /b 1
-            )
-            del "%TEMP%\rtv_download.ps1" >nul 2>nul
-        )
-        echo Projekt liegt jetzt unter: %ZIEL_ORDNER%
-        echo Starte von dort weiter ...
-        echo.
-        call "%ZIEL_ORDNER%\start.bat"
-        exit /b %errorlevel%
+rem --- 0. Projektordner bestimmen und bei Bedarf (neu) laden: entweder weil
+rem     hier noch gar kein komplettes Projekt liegt (nur diese eine Datei
+rem     wurde heruntergeladen), oder weil Schritt -1 eine neuere Version
+rem     gefunden hat. In beiden Faellen wird der KOMPLETTE Code von GitHub
+rem     aufgefrischt (nicht nur start.bat), venv/data/logs bleiben dabei
+rem     unberuehrt (die liegen nicht im heruntergeladenen Quellcode). ---
+if exist "requirements.txt" (
+    set "PROJEKT_ZIEL=%cd%"
+) else (
+    set "PROJEKT_ZIEL=%ZIEL_ORDNER%"
+)
+
+set "MUSS_LADEN="
+if not exist "requirements.txt" set "MUSS_LADEN=1"
+if defined NEUERE_VERSION_GEFUNDEN set "MUSS_LADEN=1"
+
+if defined MUSS_LADEN (
+    echo Lade aktuellen Projektstand von GitHub ^(Code + Web-App werden aufgefrischt^)...
+    rem PowerShell-Logik in eine temporaere .ps1-Datei schreiben statt als
+    rem Inline-Befehl - vermeidet fragile verschachtelte Anfuehrungszeichen.
+    > "%TEMP%\rtv_download.ps1" (
+        echo $ErrorActionPreference = 'Stop'
+        echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        echo Invoke-WebRequest -Uri 'https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.zip' -OutFile "$env:TEMP\rtv.zip"
+        echo Expand-Archive -Path "$env:TEMP\rtv.zip" -DestinationPath "$env:TEMP\rtv-extract" -Force
+        echo New-Item -ItemType Directory -Force -Path '%PROJEKT_ZIEL%' ^| Out-Null
+        echo Copy-Item -Path "$env:TEMP\rtv-extract\reality-tv-programm-main\*" -Destination '%PROJEKT_ZIEL%' -Recurse -Force
+        echo Remove-Item "$env:TEMP\rtv.zip","$env:TEMP\rtv-extract" -Recurse -Force
     )
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_download.ps1"
+    if errorlevel 1 (
+        del "%TEMP%\rtv_download.ps1" >nul 2>nul
+        echo Fehler beim Herunterladen/Entpacken. Bitte Internetverbindung pruefen,
+        echo oder das Repo manuell laden: https://github.com/CrazyJimPro/reality-tv-programm
+        pause
+        exit /b 1
+    )
+    del "%TEMP%\rtv_download.ps1" >nul 2>nul
+
+    if /I not "%cd%"=="%PROJEKT_ZIEL%" (
+        echo Projekt liegt jetzt unter: %PROJEKT_ZIEL%
+    ) else (
+        echo Projekt aufgefrischt.
+    )
+    echo Starte neu ...
+    echo.
+    start "" cmd /c call "%PROJEKT_ZIEL%\start.bat"
+    exit /b 0
 )
 
 rem --- 1. Python vorhanden? Sonst automatisch per winget installieren ---
