@@ -1,9 +1,13 @@
 # Reality-TV Programmübersicht (RTL / VOX / Sat.1 / ProSieben / RTL2 / Kabel Eins)
 
-Ein privates, lokales Tool: scraped 2x pro Woche automatisch die Programmdaten
-von RTL, VOX, Sat.1, ProSieben, RTL2 und Kabel Eins, filtert bekannte
+Ein privates, lokales Tool: holt bei jedem Start die Programmdaten von RTL,
+VOX, Sat.1, ProSieben, RTL2 und Kabel Eins, filtert bekannte
 Reality-TV-Formate heraus und zeigt sie in einer lokalen Web-App an — mit
 einer Vorschau auf die nächste und übernächste Woche.
+
+Es läuft **nichts im Hintergrund**: die Daten werden geholt, wenn die App
+über die Desktop-Verknüpfung gestartet wird — und mit dem Knopf
+**„Beenden“** auf der Seite ist alles wieder aus.
 
 Läuft unter **Windows und Linux**.
 
@@ -25,23 +29,25 @@ Egal von wo die Datei gestartet wird (Downloads-Ordner, USB-Stick, ...): Beim
 ersten Lauf lädt sie automatisch das komplette Projekt nach
 `%USERPROFILE%\reality-tv-programm` (Windows) bzw. `~/reality-tv-programm`
 (Linux) herunter und macht dort weiter. Danach: Python-Check, virtuelle
-Umgebung, Abhängigkeiten, automatische Aktualisierung (Mo + Do, 06:00 Uhr)
-und der erste Datenabruf — alles automatisch, ca. 1-2 Minuten beim
+Umgebung und Abhängigkeiten — alles automatisch, ca. 1-2 Minuten beim
 allerersten Mal. Danach öffnet sich automatisch der Browser mit der
-Übersicht unter http://127.0.0.1:5000
+Übersicht unter http://127.0.0.1:5000, während im Hintergrund die aktuellen
+Programmdaten geholt werden (1-2 Minuten; die Seite zeigt so lange einen
+Hinweis und lädt sich von selbst neu, sobald der Abruf fertig ist).
 
 **Beim ersten Lauf wird außerdem automatisch eine Desktop-Verknüpfung
 angelegt** ("Reality-TV Programm") — ab dann reicht ein Doppelklick darauf,
 komplett **ohne sichtbares Konsolen-/Terminalfenster**. Alle Meldungen
 landen dabei in `logs/start.log`, falls doch mal etwas schiefgeht. Läuft die
 Web-App schon (z.B. weil die Verknüpfung versehentlich zweimal angeklickt
-wurde), öffnet ein erneuter Klick einfach nur den Browser erneut, statt
-einen zweiten Prozess zu starten. Zum Beenden: Python-Prozess im
-Task-Manager (Windows) bzw. `pkill -f webapp/app.py` (Linux) — oder einfach
-laufen lassen, das ist unproblematisch.
+wurde), stößt ein erneuter Klick nur eine Aktualisierung an und öffnet den
+Browser erneut, statt einen zweiten Prozess zu starten. **Zum Beenden den Knopf „Beenden“ oben auf
+der Seite benutzen** — danach läuft nichts mehr im Hintergrund (kein
+Task-Manager nötig, auch wenn ohne sichtbares Fenster gestartet wurde).
 
-Die App muss nicht dauerhaft laufen: einfach starten, wenn du reinschauen
-willst.
+Die App muss und soll nicht dauerhaft laufen: einfach starten, wenn du
+reinschauen willst — dabei werden die Daten frisch geholt — und danach
+wieder beenden.
 
 Was das Skript im Detail automatisch macht:
 - lädt bei Bedarf den Rest des Projekts von GitHub herunter (nur beim
@@ -49,13 +55,13 @@ Was das Skript im Detail automatisch macht:
 - prüft, ob Python vorhanden ist — falls nicht: installiert es selbst
   (Windows: `winget`, Linux: `apt-get`, braucht dort `sudo`)
 - legt eine virtuelle Umgebung an und installiert die Abhängigkeiten
-- richtet die automatische Aktualisierung ein (Windows-Aufgabenplanung
-  bzw. Cronjob, jeweils montags + donnerstags 06:00 Uhr)
-- holt beim allerersten Start einmalig sofort die aktuellen Programmdaten,
-  damit direkt etwas zu sehen ist
+- entfernt eine früher angelegte automatische Aufgabe bzw. den früheren
+  Cron-Eintrag („RealityTV_Scraper“, Mo + Do 06:00 Uhr) — wird nicht mehr
+  gebraucht, seit bei jedem Start aktualisiert wird
 - legt eine Desktop-Verknüpfung an (falls noch nicht vorhanden)
 - startet die Web-App und öffnet den Browser (ohne sichtbares Fenster, wenn
-  über die Desktop-Verknüpfung gestartet)
+  über die Desktop-Verknüpfung gestartet); die App holt beim Hochfahren
+  selbst die aktuellen Programmdaten
 
 *(Wer lieber das ganze Repo selbst klont/als ZIP lädt, kann das natürlich
 auch tun — `start.bat`/`start.sh` erkennen dann, dass der Rest schon da ist,
@@ -72,9 +78,8 @@ klicken — erscheint sofort angehakt in der Liste. Das lässt sich beliebig
 oft wiederholen, um mehrere eigene Sendungen auf einmal zu ergänzen. Erst
 **"Speichern"** übernimmt alles endgültig: schreibt die komplette Auswahl in
 `config/reality_shows.json` **und stößt sofort einen neuen Datenabruf an**
-(dauert 1-2 Minuten, der Knopf zeigt solange "Wird gespeichert und
-aktualisiert..." an) — die Übersicht zeigt danach direkt den neuen Stand,
-ohne auf den nächsten automatischen Mo/Do-Lauf warten zu müssen.
+(läuft im Hintergrund, dauert 1-2 Minuten) — die Übersicht zeigt danach
+direkt den neuen Stand, ohne dass die App neu gestartet werden muss.
 
 <details>
 <summary>Alternative: die Datei config/reality_shows.json direkt bearbeiten</summary>
@@ -112,9 +117,9 @@ nachher (Love Island entfernt):
 
 Die Datei wird bei **jedem** Scraper-Lauf neu eingelesen, kein Neustart
 nötig. Bearbeitest du `config/reality_shows.json` direkt (statt über die
-Web-App), wirkt sich das erst ab dem nächsten Lauf aus — entweder automatisch
-am Mo/Do 06:00 Uhr, oder sofort per Klick auf **"Jetzt aktualisieren"** oben
-auf der Übersichtsseite. Wichtig beim Entfernen: bereits in
+Web-App), wirkt sich das erst ab dem nächsten Lauf aus — also beim nächsten
+Start der App, oder sofort per Klick auf **"Jetzt aktualisieren"** oben auf
+der Übersichtsseite. Wichtig beim Entfernen: bereits in
 `data/programm.db` gespeicherte, vergangene Treffer dieser Sendung
 verschwinden nicht rückwirkend aus der Datenbank, sondern werden ab dem
 nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
@@ -140,12 +145,15 @@ nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
   `/einstellungen` verwaltet `config/reality_shows.json` (Vorschläge aus
   `webapp/vorschlaege.py` an-/abwählen, eigene Sendungen per "Hinzufügen"
   beliebig oft ergänzen, dann einmal "Speichern"),
-  `/aktualisieren` (POST) stößt `scraper/run.py` sofort als Subprozess an
-  (Knopf "Jetzt aktualisieren" auf der Startseite; wird beim Speichern in
-  `/einstellungen` automatisch mit ausgelöst)
+  `/aktualisieren` (POST) stößt `scraper/run.py` als Subprozess in einem
+  Hintergrund-Thread an (Knopf "Jetzt aktualisieren" auf der Startseite;
+  wird beim Speichern in `/einstellungen` automatisch mit ausgelöst und
+  außerdem einmal beim Start der App). `/scrape-status` (JSON) meldet, ob
+  ein Lauf noch läuft — die Übersicht lädt sich damit von selbst neu, sobald
+  er fertig ist, und zeigt eine Fehlermeldung, wenn er fehlgeschlagen ist.
+  `/beenden` (POST) beendet die App komplett (Knopf "Beenden")
 - `start.bat` / `start.sh` — die einzige Datei, die man ausführt: Installation
-  + automatische Aktualisierung einrichten + Desktop-Verknüpfung anlegen +
-  Web-App starten, alles in einem
+  + Desktop-Verknüpfung anlegen + Web-App starten, alles in einem
 - `start_versteckt.bat` / `start_versteckt.vbs` (nur Windows) — Ziel der
   Desktop-Verknüpfung: ruft `start.bat` ohne sichtbares Konsolenfenster auf
   und leitet alle Meldungen nach `logs/start.log` um (unter Linux reicht
@@ -155,7 +163,13 @@ Jede Quelle scheitert isoliert (siehe `logs/scraper.log` und die
 Status-Anzeige oben in der Web-App): Schlägt eine Quelle fehl, bleiben die
 zuletzt erfolgreich gespeicherten Daten unangetastet.
 
-## Automatisierung wieder entfernen
+## Frühere Hintergrund-Automatisierung
+
+Bis Version 1.3.0 hat sich das Tool per Windows-Aufgabenplanung bzw. Cronjob
+zweimal wöchentlich (Mo + Do, 06:00 Uhr) selbst aktualisiert. Das gibt es
+nicht mehr: aktualisiert wird bei jedem Start der App. `start.bat`/`start.sh`
+**entfernen einen noch vorhandenen Alt-Eintrag automatisch** beim nächsten
+Lauf. Von Hand geht es so —
 
 Windows:
 ```powershell
@@ -171,8 +185,9 @@ crontab -l | grep -v '# RealityTV_Scraper' | crontab -
 
 - **Rechtlich:** Automatisiertes Abrufen von rtl.de und tvspielfilm.de kann
   gegen deren Nutzungsbedingungen verstoßen, auch bei rein privatem Gebrauch.
-  Das ist ein bewusst eingegangenes Risiko — keine Rechtsberatung. Nur 2x pro
-  Woche abrufen hält die Serverlast gering.
+  Das ist ein bewusst eingegangenes Risiko — keine Rechtsberatung. Abgerufen
+  wird nur beim Start der App (und auf Knopfdruck), das hält die Serverlast
+  gering.
 - **Wartung:** Ändern die Seiten ihr Layout, muss der jeweilige Scraper in
   `scraper/sources/` angepasst werden (Selektoren sind zentral an einer
   Stelle pro Datei).

@@ -20,23 +20,39 @@
     <p class="subtitle">RTL · VOX · Sat.1 · ProSieben · RTL2 · Kabel Eins — Stand: {{ heute.strftime('%d.%m.%Y') }} · {{ anzahl_gesamt }} Sendungen gefunden</p>
     <nav class="nav-back">
       <a href="{{ url_for('einstellungen') }}" class="verwalten-button">Sendungen verwalten &rarr;</a>
-      <form method="post" action="{{ url_for('aktualisieren') }}" class="aktualisieren-form" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Aktualisiere ... (1-2 Minuten)';">
-        <button type="submit">Jetzt aktualisieren</button>
+      <form method="post" action="{{ url_for('aktualisieren') }}" class="aktualisieren-form">
+        <button type="submit" {% if scrape.laeuft %}disabled{% endif %}>Jetzt aktualisieren</button>
+      </form>
+      <form method="post" action="{{ url_for('beenden') }}" class="beenden-form" onsubmit="return confirm('Reality-TV Programm wirklich beenden?');">
+        <button type="submit">Beenden</button>
       </form>
       <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten">🌙</button>
     </nav>
   </header>
 
-  {% if aktualisiert %}
+  {% if scrape.laeuft %}
+    <p class="lauf-hinweis" id="lauf-hinweis">Programmdaten werden gerade abgerufen (dauert 1-2 Minuten) &mdash; die Seite lädt sich automatisch neu, sobald es fertig ist.</p>
+  {% elif scrape.fehler %}
+    <p class="fehler-hinweis">Die letzte Aktualisierung ist fehlgeschlagen: {{ scrape.fehler }}<br>
+      Angezeigt werden weiterhin die zuletzt erfolgreich geholten Daten. Details stehen in <code>logs/scraper.log</code>.</p>
+  {% elif scrape.fertig_am %}
     <p class="gespeichert-hinweis">Programmdaten wurden gerade neu abgerufen.</p>
   {% endif %}
 
   <section class="quellen-status">
     {% for eintrag in status %}
-      <span class="status-chip {{ 'status-ok' if eintrag.letzter_erfolg_am else 'status-fehler' }}">
+      {% if not eintrag.letzter_erfolg_am %}
+        {% set chip_klasse = 'status-fehler' %}
+      {% elif eintrag.veraltet %}
+        {% set chip_klasse = 'status-veraltet' %}
+      {% else %}
+        {% set chip_klasse = 'status-ok' %}
+      {% endif %}
+      <span class="status-chip {{ chip_klasse }}">
         {{ eintrag.quelle }}:
         {% if eintrag.letzter_erfolg_am %}
-          zuletzt aktualisiert {{ eintrag.letzter_erfolg_am }}
+          {% if eintrag.veraltet %}⚠ veraltet &mdash; {% endif %}
+          zuletzt aktualisiert {{ eintrag.erfolg_text }} ({{ eintrag.alter_text }})
         {% else %}
           Fehler seit {{ eintrag.letzter_fehler_am }} ({{ eintrag.letzter_fehler }})
         {% endif %}
@@ -81,8 +97,27 @@
   {{ woche("Übernächste Woche", uebernaechste_woche) }}
 
   <footer>
-    <p>Läuft lokal auf deinem Rechner. Liste der erkannten Formate: <code>config/reality_shows.json</code>.</p>
+    <p>Läuft lokal auf deinem Rechner. Die Daten werden bei jedem Start geholt; mit <strong>Beenden</strong> ist alles wieder aus.
+      Liste der erkannten Formate: <code>config/reality_shows.json</code>.</p>
   </footer>
+
+  {% if scrape.laeuft %}
+    <script>
+      // Solange der Abruf laeuft, alle 5 Sekunden nachfragen und die Seite
+      // genau einmal neu laden, sobald er fertig ist.
+      (function () {
+        function pruefen() {
+          fetch("{{ url_for('scrape_status') }}", { cache: "no-store" })
+            .then(function (antwort) { return antwort.json(); })
+            .then(function (daten) {
+              if (daten.laeuft) { setTimeout(pruefen, 5000); } else { location.reload(); }
+            })
+            .catch(function () { setTimeout(pruefen, 5000); });
+        }
+        setTimeout(pruefen, 5000);
+      })();
+    </script>
+  {% endif %}
 
   <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>

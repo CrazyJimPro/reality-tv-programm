@@ -25,10 +25,10 @@
   </header>
 
   {% if gespeichert %}
-    <p class="gespeichert-hinweis">Gespeichert und aktualisiert — die Übersicht zeigt jetzt den neuen Stand.</p>
+    <p class="gespeichert-hinweis">Gespeichert. Die Programmdaten werden gerade im Hintergrund neu geholt (1-2 Minuten) — danach zeigt die Übersicht den neuen Stand.</p>
   {% endif %}
 
-  <form method="post" id="einstellungen-form" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').textContent='Wird gespeichert und aktualisiert ... (1-2 Minuten)';">
+  <form method="post" id="einstellungen-form" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').textContent='Wird gespeichert ...';">
     <section class="show-liste" id="show-liste">
       {% for show in shows %}
         <label class="show-checkbox">

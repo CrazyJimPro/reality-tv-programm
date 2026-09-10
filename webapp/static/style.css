@@ -72,6 +72,10 @@ header h1 {
 
 .status-ok { color: #1a7a3a; }
 .status-fehler { color: #b3261e; }
+/* Quelle hat zwar irgendwann funktioniert, der letzte Erfolg ist aber
+   laenger her als webapp/app.py:VERALTET_AB_STUNDEN - sonst waere der
+   Chip nach dem ersten Erfolg fuer immer gruen. */
+.status-veraltet { color: #a35a00; border-color: #a35a00; }
 
 .woche h2 {
   margin-top: 2rem;
@@ -237,6 +241,51 @@ footer code {
 .aktualisieren-form button:disabled {
   opacity: 0.6;
   cursor: wait;
+}
+
+.beenden-form {
+  margin: 0;
+}
+
+.beenden-form button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.beenden-form button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Laufender Datenabruf bzw. fehlgeschlagener Lauf - frueher wurde immer
+   nur Erfolg gemeldet, egal wie der Lauf ausging. */
+.lauf-hinweis {
+  background: #8a6d00;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.fehler-hinweis {
+  background: #b3261e;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.fehler-hinweis code {
+  background: rgba(255, 255, 255, 0.18);
+  padding: 0 0.25rem;
+  border-radius: 4px;
 }
 
 .gespeichert-hinweis {

@@ -157,17 +157,16 @@ if not exist "venv\Scripts\python.exe" (
     )
 )
 
-rem --- 3. Automatische Aktualisierung einrichten, falls noch nicht vorhanden ---
+rem --- 3. Frueher angelegte automatische Aufgabe wieder entfernen. Die Daten
+rem     werden jetzt bei jedem Start der App geholt (die Web-App stoesst den
+rem     Scrape-Lauf beim Hochfahren selbst an) - es soll nichts mehr im
+rem     Hintergrund laufen, wenn die App beendet ist. Bei aelteren
+rem     Installationen liegt die Aufgabe noch in der Aufgabenplanung. ---
 schtasks /Query /TN "RealityTV_Scraper" >nul 2>nul
-if errorlevel 1 (
-    echo Richte automatische Aktualisierung ein ^(Montag + Donnerstag, 06:00 Uhr^)...
-    schtasks /Create /TN "RealityTV_Scraper" /TR "\"%~dp0venv\Scripts\python.exe\" \"%~dp0scraper\run.py\"" /SC WEEKLY /D MON,THU /ST 06:00 /RL LIMITED /F >nul
-)
-
-rem --- 4. Beim allerersten Start: einmal sofort Daten holen, damit direkt etwas zu sehen ist ---
-if not exist "data\programm.db" (
-    echo Erster Start: hole aktuelle Programmdaten ^(dauert 1-2 Minuten^)...
-    venv\Scripts\python.exe -m scraper.run
+if not errorlevel 1 (
+    echo Entferne die fruehere automatische Aufgabe ^(wird nicht mehr gebraucht^)...
+    schtasks /Delete /TN "RealityTV_Scraper" /F >nul 2>nul
+    if errorlevel 1 echo Hinweis: Aufgabe "RealityTV_Scraper" konnte nicht entfernt werden - ggf. manuell in der Aufgabenplanung loeschen.
 )
 
 rem --- 4.5 Desktop-Verknuepfung anlegen, falls noch nicht vorhanden - startet
@@ -197,16 +196,21 @@ rem     stattdessen direkt geprueft, ob 5000 als LOKALE Adresse auftaucht
 rem     (2. Spalte), unabhaengig vom Zustandstext. ---
 netstat -ano | findstr /r /c:"^ *TCP *[^ ]*:5000 " >nul 2>nul
 if not errorlevel 1 (
-    echo Web-App laeuft bereits - oeffne Browser ...
+    echo Web-App laeuft bereits - stosse Aktualisierung an und oeffne Browser ...
+    rem Auch beim Klick auf die Verknuepfung waehrend die App schon laeuft
+    rem sollen frische Daten geholt werden. Der Aufruf kommt sofort zurueck,
+    rem der Lauf selbst passiert im Hintergrund der App.
+    powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Method POST -Uri 'http://127.0.0.1:5000/aktualisieren' -TimeoutSec 10 ^| Out-Null } catch { }" >nul 2>nul
     start "" http://127.0.0.1:5000
     exit /b 0
 )
 
 echo.
 echo Oeffne http://127.0.0.1:5000 im Browser ...
-echo Zum Beenden dieses Fenster schliessen oder Strg+C druecken ^(oder den
-echo Python-Prozess im Task-Manager beenden, falls per Desktop-Verknuepfung
-echo ohne sichtbares Fenster gestartet^).
+echo Die Programmdaten werden dabei im Hintergrund frisch geholt ^(1-2 Minuten^),
+echo die Seite aktualisiert sich von selbst, sobald der Lauf fertig ist.
+echo Zum Beenden den Knopf "Beenden" oben auf der Seite benutzen - danach
+echo laeuft nichts mehr im Hintergrund.
 echo.
 start "" http://127.0.0.1:5000
 venv\Scripts\python.exe webapp\app.py

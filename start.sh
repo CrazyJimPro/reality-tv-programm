@@ -122,25 +122,17 @@ fi
 PROJEKT_PFAD="$(pwd)"
 VENV_PYTHON="$PROJEKT_PFAD/venv/bin/python"
 
-# --- 3. Automatische Aktualisierung einrichten, falls noch nicht vorhanden ---
+# --- 3. Frueher angelegten Cron-Eintrag wieder entfernen. Die Daten werden
+# jetzt bei jedem Start der App geholt (die Web-App stoesst den Scrape-Lauf
+# beim Hochfahren selbst an) - es soll nichts mehr im Hintergrund laufen,
+# wenn die App beendet ist. Bei aelteren Installationen steht der Eintrag
+# noch in der Crontab. ---
 MARKER="# RealityTV_Scraper"
-if ! crontab -l 2>/dev/null | grep -q "$MARKER"; then
-    echo "Richte automatische Aktualisierung ein (Montag + Donnerstag, 06:00 Uhr)..."
-    CRON_ZEILE="0 6 * * 1,4 $VENV_PYTHON $PROJEKT_PFAD/scraper/run.py >> $PROJEKT_PFAD/logs/cron.log 2>&1"
-    ( crontab -l 2>/dev/null | grep -v "$MARKER" || true ; echo "$CRON_ZEILE $MARKER" ) | crontab -
-fi
-
-# Cron-Dienst best-effort starten, falls installiert aber nicht aktiv (z.B. frischer Container/VM)
-if command -v systemctl >/dev/null 2>&1; then
-    systemctl is-active --quiet cron 2>/dev/null || sudo systemctl start cron 2>/dev/null || true
-elif command -v service >/dev/null 2>&1; then
-    service cron status >/dev/null 2>&1 || sudo service cron start >/dev/null 2>&1 || true
-fi
-
-# --- 4. Beim allerersten Start: einmal sofort Daten holen, damit direkt etwas zu sehen ist ---
-if [ ! -f "data/programm.db" ]; then
-    echo "Erster Start: hole aktuelle Programmdaten (dauert 1-2 Minuten)..."
-    "$VENV_PYTHON" -m scraper.run
+if crontab -l 2>/dev/null | grep -q "$MARKER"; then
+    echo "Entferne den frueheren Cron-Eintrag (wird nicht mehr gebraucht)..."
+    # grep liefert 1, wenn nach dem Filtern nichts uebrig bleibt - ohne
+    # "|| true" wuerde die Pipeline dann eine leere Crontab verhindern.
+    ( crontab -l 2>/dev/null | grep -v "$MARKER" || true ) | crontab -
 fi
 
 # --- 4.5 Desktop-Verknuepfung anlegen, falls noch nicht vorhanden - startet
@@ -170,15 +162,21 @@ fi
 # laeuft - sonst Port-Konflikt, z.B. bei erneutem Klick auf die
 # Desktop-Verknuepfung waehrend die App schon offen ist) ---
 if curl -s -o /dev/null --connect-timeout 1 http://127.0.0.1:5000/ 2>/dev/null; then
-    echo "Web-App laeuft bereits - oeffne Browser ..."
+    echo "Web-App laeuft bereits - stosse Aktualisierung an und oeffne Browser ..."
+    # Auch beim Klick auf die Verknuepfung waehrend die App schon laeuft
+    # sollen frische Daten geholt werden. Der Aufruf kommt sofort zurueck,
+    # der Lauf selbst passiert im Hintergrund der App.
+    curl -s -o /dev/null -X POST --max-time 10 http://127.0.0.1:5000/aktualisieren || true
     xdg-open http://127.0.0.1:5000 >/dev/null 2>&1 || true
     exit 0
 fi
 
 echo
 echo "Oeffne http://127.0.0.1:5000 im Browser ..."
-echo "Zum Beenden Strg+C druecken (oder den Python-Prozess beenden, falls"
-echo "per Desktop-Verknuepfung ohne sichtbares Terminal gestartet)."
+echo "Die Programmdaten werden dabei im Hintergrund frisch geholt (1-2 Minuten),"
+echo "die Seite aktualisiert sich von selbst, sobald der Lauf fertig ist."
+echo "Zum Beenden den Knopf \"Beenden\" oben auf der Seite benutzen - danach"
+echo "laeuft nichts mehr im Hintergrund."
 echo
 ( sleep 1 && xdg-open http://127.0.0.1:5000 >/dev/null 2>&1 || true ) &
 "$VENV_PYTHON" webapp/app.py

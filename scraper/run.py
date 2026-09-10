@@ -1,7 +1,8 @@
 """Hauptskript: holt alle Quellen, merged/filtert sie und speichert das Ergebnis.
 
-Wird von der Windows-Aufgabenplanung bzw. von cron aufgerufen (siehe
-setup_task.ps1 / setup_cron.sh). Kann auch manuell gestartet werden:
+Wird von der Web-App aufgerufen (einmal beim Start der App und beim Klick
+auf "Jetzt aktualisieren", siehe webapp/app.py). Kann auch manuell
+gestartet werden:
 
     python -m scraper.run
 """
