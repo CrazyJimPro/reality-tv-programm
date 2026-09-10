@@ -162,3 +162,12 @@ crontab -l | grep -v '# RealityTV_Scraper' | crontab -
   Meldung trotzdem erscheint, hilft meist ein manueller Python-Download von
   https://www.python.org/downloads/ (dabei "Add python.exe to PATH"
   anhaken) und `start.bat` danach in einem neuen Terminal erneut starten.
+- **"Selbst-Update-Prüfung fehlgeschlagen" oder Skript aktualisiert sich
+  nicht, obwohl es neuere Versionen gibt:** meist ein TLS-Problem auf älteren
+  Windows-Installationen (Windows nutzt für HTTPS-Verbindungen aus der
+  Kommandozeile standardmäßig teils noch TLS 1.0/1.1, GitHub verlangt aber
+  TLS 1.2 — ab dieser Version wird das automatisch erzwungen). Zeigt die
+  Meldung trotzdem "fehlgeschlagen": Internetverbindung/Firewall/Proxy auf
+  der VM prüfen, ob `raw.githubusercontent.com` erreichbar ist. Als
+  Notlösung hilft immer: aktuelle `start.bat` manuell neu herunterladen
+  (https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.bat).

@@ -8,11 +8,20 @@ echo.
 rem --- -1. Auf neuere Version dieser Datei pruefen und bei Bedarf selbst
 rem     aktualisieren. Ohne das wuerde eine bereits heruntergeladene/
 rem     installierte start.bat nie von spaeteren Bugfixes erfahren, egal
-rem     wie oft man sie erneut ausfuehrt. Schlaegt lautlos fehl, wenn kein
-rem     Internet verfuegbar ist (z.B. offline weiterarbeiten). ---
+rem     wie oft man sie erneut ausfuehrt. Schlaegt nicht mehr lautlos fehl,
+rem     sondern meldet sich, wenn kein Internet/TLS-Verbindung klappt. ---
 set "SELBST=%~f0"
 del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
-powershell -NoProfile -Command "try { (New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.bat', '%TEMP%\rtv_start_latest.bat') } catch {}" >nul 2>nul
+> "%TEMP%\rtv_selfupdate.ps1" (
+    echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    echo try {
+    echo     ^(New-Object System.Net.WebClient^).DownloadFile^('https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.bat','%TEMP%\rtv_start_latest.bat'^)
+    echo } catch {
+    echo     Write-Host "SELBSTUPDATE-FEHLER: $_"
+    echo }
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_selfupdate.ps1"
+del "%TEMP%\rtv_selfupdate.ps1" >nul 2>nul
 if exist "%TEMP%\rtv_start_latest.bat" (
     findstr /b /l /c:"@echo off" "%TEMP%\rtv_start_latest.bat" >nul 2>nul
     if not errorlevel 1 (
@@ -24,8 +33,12 @@ if exist "%TEMP%\rtv_start_latest.bat" (
             start "" cmd /c call "%SELBST%"
             exit /b 0
         )
+    ) else (
+        echo Selbst-Update-Pruefung: heruntergeladene Datei sieht beschaedigt aus, ignoriere sie.
     )
     del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
+) else (
+    echo Selbst-Update-Pruefung fehlgeschlagen ^(kein Internet oder Netzwerk/Firewall blockiert^) - fahre mit der vorhandenen Version fort.
 )
 
 rem --- 0. Falls das Projekt (noch) nicht komplett vorhanden ist (z.B. weil nur
@@ -40,6 +53,7 @@ if not exist "requirements.txt" (
             rem Inline-Befehl - vermeidet fragile verschachtelte Anfuehrungszeichen.
             > "%TEMP%\rtv_download.ps1" (
                 echo $ErrorActionPreference = 'Stop'
+                echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
                 echo Invoke-WebRequest -Uri 'https://github.com/CrazyJimPro/reality-tv-programm/archive/refs/heads/main.zip' -OutFile "$env:TEMP\rtv.zip"
                 echo Expand-Archive -Path "$env:TEMP\rtv.zip" -DestinationPath "$env:TEMP\rtv-extract" -Force
                 echo New-Item -ItemType Directory -Force -Path '%ZIEL_ORDNER%' ^| Out-Null
