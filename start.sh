@@ -25,13 +25,32 @@ ZIEL_ORDNER="$HOME/reality-tv-programm"
 # dem Stand der Erstinstallation haengen bleiben, selbst wenn sich start.sh
 # "selbst aktualisiert". Schlaegt lautlos fehl, wenn kein Internet
 # verfuegbar ist (alte Version laeuft dann einfach weiter). ---
+# Laedt eine Datei aus dem Repository nach $2 (leise, curl oder wget).
+hole_datei() {
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL -o "$2" "https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/$1" 2>/dev/null
+    elif command -v wget >/dev/null 2>&1; then
+        wget -q -O "$2" "https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/$1" 2>/dev/null
+    fi
+}
+
+# Beendet eine noch laufende Instanz - erst hoeflich ueber /beenden, danach
+# notfalls hart. Versionen vor v1.4.0 kennen /beenden noch nicht.
+alte_instanz_beenden() {
+    curl -s -o /dev/null --connect-timeout 1 http://127.0.0.1:5000/ 2>/dev/null || return 0
+    echo "Beende die noch laufende Version (sonst liefe der alte Code weiter)..."
+    curl -s -o /dev/null -X POST --max-time 10 http://127.0.0.1:5000/beenden 2>/dev/null || true
+    for _ in $(seq 1 10); do
+        curl -s -o /dev/null --connect-timeout 1 http://127.0.0.1:5000/ 2>/dev/null || return 0
+        sleep 1
+    done
+    pkill -f "webapp/app.py" 2>/dev/null || true
+    sleep 1
+}
+
 NEUERE_VERSION_GEFUNDEN=""
 TMP_SELF="$(mktemp)"
-if command -v curl >/dev/null 2>&1; then
-    curl -fsSL -o "$TMP_SELF" "https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.sh" 2>/dev/null
-elif command -v wget >/dev/null 2>&1; then
-    wget -q -O "$TMP_SELF" "https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.sh" 2>/dev/null
-fi
+hole_datei start.sh "$TMP_SELF"
 if [ -s "$TMP_SELF" ] && head -1 "$TMP_SELF" | grep -q "^#!/usr/bin/env bash"; then
     if ! cmp -s "$TMP_SELF" "$SELBST"; then
         NEUERE_VERSION_GEFUNDEN=1
@@ -40,6 +59,25 @@ else
     echo "Selbst-Update-Pruefung fehlgeschlagen (kein Internet oder Netzwerk blockiert) - fahre mit der vorhandenen Version fort."
 fi
 rm -f "$TMP_SELF"
+
+# Zweiter Ausloeser: die Versionsnummer. Der Vergleich oben schlaegt nur an,
+# wenn sich start.sh SELBST geaendert hat - Aenderungen an Web-App, Vorlagen
+# oder Scraper tun das nicht. Ohne diesen Vergleich bliebe eine Installation
+# genau dann stehen, wenn nur der uebrige Code neu ist (genau so passiert
+# zwischen v1.4.1 und v1.4.2).
+if [ -f VERSION ]; then
+    TMP_VER="$(mktemp)"
+    hole_datei VERSION "$TMP_VER"
+    if [ -s "$TMP_VER" ]; then
+        VERSION_NEU="$(tr -d '\r' < "$TMP_VER" | head -1)"
+        VERSION_LOKAL="$(tr -d '\r' < VERSION | head -1)"
+        if [ -n "$VERSION_NEU" ] && [ "$VERSION_NEU" != "$VERSION_LOKAL" ]; then
+            echo "Neue Version verfuegbar: $VERSION_NEU (installiert: $VERSION_LOKAL)"
+            NEUERE_VERSION_GEFUNDEN=1
+        fi
+    fi
+    rm -f "$TMP_VER"
+fi
 
 # --- 0. Projektordner bestimmen und bei Bedarf (neu) laden: entweder weil
 # hier noch gar kein komplettes Projekt liegt (nur diese eine Datei wurde
@@ -85,6 +123,10 @@ if [ -n "$MUSS_LADEN" ]; then
     else
         echo "Projekt aufgefrischt."
     fi
+    # Eine noch laufende Instanz haelt den ALTEN Code im Speicher - die frisch
+    # heruntergeladenen Dateien wuerden erst beim naechsten Start wirksam.
+    alte_instanz_beenden
+
     echo "Starte neu ..."
     echo
     chmod +x "$PROJEKT_ZIEL/start.sh"

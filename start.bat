@@ -41,6 +41,13 @@ if exist "%TEMP%\rtv_start_latest.bat" (
     echo Selbst-Update-Pruefung fehlgeschlagen ^(kein Internet oder Netzwerk/Firewall blockiert^) - fahre mit der vorhandenen Version fort.
 )
 
+rem     Zweiter Ausloeser: die Versionsnummer. Der Vergleich oben schlaegt nur
+rem     an, wenn sich start.bat SELBST geaendert hat - Aenderungen an Web-App,
+rem     Vorlagen oder Scraper tun das nicht. Ohne diesen Vergleich bliebe eine
+rem     Installation genau dann stehen, wenn nur der uebrige Code neu ist
+rem     (genau so passiert zwischen v1.4.1 und v1.4.2).
+call :pruefe_version
+
 rem --- 0. Projektordner bestimmen und bei Bedarf (neu) laden: entweder weil
 rem     hier noch gar kein komplettes Projekt liegt (nur diese eine Datei
 rem     wurde heruntergeladen), oder weil Schritt -1 eine neuere Version
@@ -85,6 +92,11 @@ if defined MUSS_LADEN (
     ) else (
         echo Projekt aufgefrischt.
     )
+    rem Eine noch laufende Instanz haelt den ALTEN Code im Speicher - die
+    rem frisch heruntergeladenen Dateien wuerden erst beim naechsten Start
+    rem wirksam. Deshalb hier sauber beenden, bevor neu gestartet wird.
+    call :alte_instanz_beenden
+
     echo Starte neu ...
     echo.
     start "" cmd /c call "%PROJEKT_ZIEL%\start.bat"
@@ -252,3 +264,48 @@ if exist "%~dp0venv\Scripts\pythonw.exe" (
 ping -n 4 127.0.0.1 >nul
 start "" http://127.0.0.1:5000
 exit /b 0
+
+
+rem ===================== Unterprogramme =====================
+
+rem --- Vergleicht die lokale VERSION mit der auf GitHub. Unterprogramm statt
+rem     Klammer-Block, weil "for /f" mit Pipe darin sonst am cmd.exe-Escaping
+rem     in verschachtelten Bloecken scheitert. ---
+:pruefe_version
+if not exist "%~dp0VERSION" goto :eof
+set "RTV_VERSION_LOKAL="
+set "RTV_VERSION_NEU="
+for /f "usebackq delims=" %%v in ("%~dp0VERSION") do set "RTV_VERSION_LOKAL=%%v"
+del "%TEMP%\rtv_version_latest.txt" >nul 2>nul
+> "%TEMP%\rtv_versioncheck.ps1" (
+    echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    echo try {
+    echo     ^(New-Object System.Net.WebClient^).DownloadFile^('https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/VERSION','%TEMP%\rtv_version_latest.txt'^)
+    echo } catch { }
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_versioncheck.ps1"
+del "%TEMP%\rtv_versioncheck.ps1" >nul 2>nul
+if not exist "%TEMP%\rtv_version_latest.txt" goto :eof
+for /f "usebackq delims=" %%v in ("%TEMP%\rtv_version_latest.txt") do set "RTV_VERSION_NEU=%%v"
+del "%TEMP%\rtv_version_latest.txt" >nul 2>nul
+if not defined RTV_VERSION_NEU goto :eof
+if not defined RTV_VERSION_LOKAL goto :eof
+if "%RTV_VERSION_LOKAL%"=="%RTV_VERSION_NEU%" goto :eof
+echo Neue Version verfuegbar: %RTV_VERSION_NEU% ^(installiert: %RTV_VERSION_LOKAL%^)
+set "NEUERE_VERSION_GEFUNDEN=1"
+goto :eof
+
+rem --- Beendet eine noch laufende Instanz. Erst hoeflich ueber /beenden,
+rem     danach notfalls hart ueber die PID auf Port 5000 - Versionen vor
+rem     v1.4.0 kennen /beenden noch gar nicht. ---
+:alte_instanz_beenden
+netstat -ano | findstr /r /c:"^ *TCP *[^ ]*:5000 " >nul 2>nul
+if errorlevel 1 goto :eof
+echo Beende die noch laufende Version ^(sonst liefe der alte Code weiter^)...
+powershell -NoProfile -Command "try { $null = Invoke-WebRequest -UseBasicParsing -Method POST -Uri 'http://127.0.0.1:5000/beenden' -TimeoutSec 10 } catch { }" >nul 2>nul
+ping -n 4 127.0.0.1 >nul
+netstat -ano | findstr /r /c:"^ *TCP *[^ ]*:5000 " >nul 2>nul
+if errorlevel 1 goto :eof
+for /f "tokens=5" %%p in ('netstat -ano ^| findstr /r /c:"^ *TCP *[^ ]*:5000 "') do taskkill /F /T /PID %%p >nul 2>nul
+ping -n 3 127.0.0.1 >nul
+goto :eof

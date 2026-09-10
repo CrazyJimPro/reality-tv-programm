@@ -58,11 +58,16 @@ reinschauen willst — dabei werden die Daten frisch geholt — und danach
 wieder beenden.
 
 **Welche Version läuft gerade?** Steht oben in der Kopfzeile der Web-App als
-kleines Abzeichen (z.B. `v1.4.1`) und beim Start auch in `logs/start.log`.
+kleines Abzeichen (z.B. `v1.4.3`) und beim Start auch in `logs/start.log`.
 Die Nummer kommt aus der Datei `VERSION` im Projektordner, die das
 Selbst-Update zusammen mit dem übrigen Code auffrischt — sie zeigt also
 immer den tatsächlich installierten Stand. Die neueste Version steht unter
 [Releases](https://github.com/CrazyJimPro/reality-tv-programm/releases).
+
+Bei jedem Start wird diese Nummer mit der auf GitHub verglichen; unterscheidet
+sie sich, wird der komplette Code aufgefrischt und neu gestartet — eine noch
+laufende Instanz wird dafür vorher beendet, sonst liefe der alte Stand aus dem
+Arbeitsspeicher einfach weiter.
 
 Was das Skript im Detail automatisch macht:
 - lädt bei Bedarf den Rest des Projekts von GitHub herunter (nur beim
