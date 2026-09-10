@@ -6,6 +6,7 @@ Danach im Browser: http://127.0.0.1:5000
 """
 from __future__ import annotations
 
+import subprocess
 import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -25,6 +26,19 @@ app = Flask(__name__)
 
 VORSCHAU_TAGE = 14
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+
+
+def _scraper_jetzt_ausfuehren() -> bool:
+    """Stoesst einen Scraper-Lauf synchron an (dauert ca. 1-2 Minuten).
+
+    Nutzt denselben Python-Interpreter, unter dem die Web-App laeuft (die
+    venv), und ruft scraper/run.py exakt so auf wie start.bat/cron es tun -
+    damit gibt es nur einen Codepfad fuer "wie wird gescraped"."""
+    ergebnis = subprocess.run(
+        [sys.executable, "-m", "scraper.run"],
+        cwd=PROJEKT_ROOT,
+    )
+    return ergebnis.returncode == 0
 
 
 def _woche_gruppieren(rows: list[dict], ab: date, bis: date) -> list[dict]:
@@ -70,7 +84,16 @@ def index():
         status=status,
         heute=heute,
         anzahl_gesamt=len(rows),
+        aktualisiert=request.args.get("aktualisiert") == "1",
     )
+
+
+@app.route("/aktualisieren", methods=["POST"])
+def aktualisieren():
+    """Manueller 'Jetzt aktualisieren'-Knopf: scraped sofort, statt auf den
+    naechsten automatischen Mo/Do-06:00-Lauf zu warten."""
+    _scraper_jetzt_ausfuehren()
+    return redirect(url_for("index", aktualisiert=1))
 
 
 @app.route("/einstellungen", methods=["GET", "POST"])
@@ -96,6 +119,9 @@ def einstellungen():
         neue_shows.sort(key=lambda s: s["name"].lower())
         daten["shows"] = neue_shows
         speichere_shows_config(daten, CONFIG_PFAD)
+        # Direkt neu scrapen, damit die geaenderte Auswahl sofort in der
+        # Uebersicht auftaucht, statt bis zum naechsten Mo/Do-Lauf zu warten.
+        _scraper_jetzt_ausfuehren()
         return redirect(url_for("einstellungen", gespeichert=1))
 
     aktive_namen = {s["name"] for s in aktive_shows}

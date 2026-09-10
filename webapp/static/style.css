@@ -146,6 +146,10 @@ footer code {
 
 .nav-back {
   margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .nav-back a {
@@ -156,6 +160,30 @@ footer code {
 
 .nav-back a:hover {
   text-decoration: underline;
+}
+
+.aktualisieren-form {
+  margin: 0;
+}
+
+.aktualisieren-form button {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.aktualisieren-form button:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.aktualisieren-form button:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .gespeichert-hinweis {

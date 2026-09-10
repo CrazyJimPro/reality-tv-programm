@@ -59,7 +59,11 @@ und überspringen den Download.)*
 öffnen). Dort gibt es eine Liste bekannter Reality-Formate zum An-/Abhaken
 sowie ein Feld, um eigene, nicht gelistete Sendungen mit Namen (und optional
 alternativen Schreibweisen, mit Komma getrennt) hinzuzufügen. "Speichern"
-schreibt die Auswahl direkt in `config/reality_shows.json`.
+schreibt die Auswahl direkt in `config/reality_shows.json` **und stößt sofort
+einen neuen Datenabruf an** (dauert 1-2 Minuten, der Knopf zeigt solange
+"Wird gespeichert und aktualisiert..." an) — die Übersicht zeigt danach
+direkt den neuen Stand, ohne auf den nächsten automatischen Mo/Do-Lauf warten
+zu müssen.
 
 <details>
 <summary>Alternative: die Datei config/reality_shows.json direkt bearbeiten</summary>
@@ -95,13 +99,14 @@ nachher (Love Island entfernt):
 
 </details>
 
-In beiden Fällen: Speichern reicht — die Datei wird bei **jedem**
-Scraper-Lauf neu eingelesen, kein Neustart nötig. Die Änderung wirkt sich ab
-dem nächsten Lauf aus (automatisch am Mo/Do oder durch erneutes Ausführen von
-`start.bat`/`start.sh`). Wichtig beim Entfernen: bereits in `data/programm.db`
-gespeicherte, vergangene Treffer dieser Sendung verschwinden nicht rückwirkend
-aus der Datenbank, sondern werden ab dem nächsten Lauf einfach nicht mehr neu
-erkannt/aktualisiert.
+Die Datei wird bei **jedem** Scraper-Lauf neu eingelesen, kein Neustart
+nötig. Bearbeitest du `config/reality_shows.json` direkt (statt über die
+Web-App), wirkt sich das erst ab dem nächsten Lauf aus — entweder automatisch
+am Mo/Do 06:00 Uhr, oder sofort per Klick auf **"Jetzt aktualisieren"** oben
+auf der Übersichtsseite. Wichtig beim Entfernen: bereits in
+`data/programm.db` gespeicherte, vergangene Treffer dieser Sendung
+verschwinden nicht rückwirkend aus der Datenbank, sondern werden ab dem
+nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
 
 ## Architektur (kurz)
 
@@ -114,7 +119,10 @@ erkannt/aktualisiert.
 - `scraper/storage.py` — SQLite (`data/programm.db`)
 - `webapp/` — Flask-App: `/` zeigt die Programmübersicht (liest nur aus der
   DB), `/einstellungen` verwaltet `config/reality_shows.json` (Vorschläge
-  aus `webapp/vorschlaege.py` an-/abwählen, eigene Sendungen hinzufügen)
+  aus `webapp/vorschlaege.py` an-/abwählen, eigene Sendungen hinzufügen),
+  `/aktualisieren` (POST) stößt `scraper/run.py` sofort als Subprozess an
+  (Knopf "Jetzt aktualisieren" auf der Startseite; wird beim Speichern in
+  `/einstellungen` automatisch mit ausgelöst)
 - `start.bat` / `start.sh` — die einzige Datei, die man ausführt: Installation
   + automatische Aktualisierung einrichten + Web-App starten, alles in einem
 
