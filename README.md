@@ -1,9 +1,9 @@
-# Reality-TV Programmübersicht (RTL / VOX / Sat.1 / ProSieben)
+# Reality-TV Programmübersicht (RTL / VOX / Sat.1 / ProSieben / RTL2 / Kabel Eins)
 
 Ein privates, lokales Tool: scraped 2x pro Woche automatisch die Programmdaten
-von RTL, VOX, Sat.1 und ProSieben, filtert bekannte Reality-TV-Formate heraus
-und zeigt sie in einer lokalen Web-App an — mit einer Vorschau auf die
-nächste und übernächste Woche.
+von RTL, VOX, Sat.1, ProSieben, RTL2 und Kabel Eins, filtert bekannte
+Reality-TV-Formate heraus und zeigt sie in einer lokalen Web-App an — mit
+einer Vorschau auf die nächste und übernächste Woche.
 
 Läuft unter **Windows und Linux**.
 
@@ -113,9 +113,11 @@ nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
 ## Architektur (kurz)
 
 - `scraper/sources/rtl.py` — RTL + VOX direkt von rtl.de (nur ~6-7 Tage Vorschau)
-- `scraper/sources/tvspielfilm.py` — Aggregator, deckt alle 4 Sender bis zu 14 Tage ab
-  (Sat.1/ProSieben laufen inzwischen über Joyn, das selbst keine brauchbare
-  mehrtägige Programmübersicht mehr bietet — deshalb hier die einzige Quelle für diese beiden)
+- `scraper/sources/tvspielfilm.py` — Aggregator, deckt alle 6 Sender bis zu 14
+  Tage ab (Sat.1/ProSieben laufen inzwischen über Joyn, das selbst keine
+  brauchbare mehrtägige Programmübersicht mehr bietet; RTL2/Kabel Eins haben
+  gar keine eigene EPG-Quelle wie rtl.de — deshalb hier die einzige Quelle
+  für diese vier Sender)
 - `scraper/merge.py` — führt Duplikate aus beiden Quellen zusammen
 - `scraper/filter.py` — Abgleich gegen `config/reality_shows.json` (wird
   beim allerersten Mal automatisch aus `config/reality_shows.default.json`

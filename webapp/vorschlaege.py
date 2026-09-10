@@ -2,7 +2,8 @@
 
 Das ist nur eine Vorschlagsliste fuer die Checkbox-Auswahl in der Web-App -
 die tatsaechlich aktive Liste steht immer in config/reality_shows.json.
-Ergaenzt keine Formate, die nicht auf RTL/VOX/Sat.1/ProSieben laufen.
+Ergaenzt keine Formate, die nicht auf RTL/VOX/Sat.1/ProSieben/RTL2/Kabel Eins
+laufen.
 """
 from __future__ import annotations
 
@@ -40,4 +41,10 @@ VORSCHLAEGE: list[dict] = [
     {"name": "Deutschland sucht den Superstar", "aliases": ["DSDS"]},
     {"name": "Das perfekte Dinner", "aliases": []},
     {"name": "Die Höhle der Löwen", "aliases": []},
+    {"name": "Hartz und herzlich", "aliases": []},
+    {"name": "Der Trödeltrupp", "aliases": []},
+    {"name": "Rosins Restaurants", "aliases": []},
+    {"name": "Armes Deutschland", "aliases": []},
+    {"name": "Diese Ochsenknechts", "aliases": []},
+    {"name": "Bella Italia", "aliases": []},
 ]

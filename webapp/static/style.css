@@ -107,6 +107,8 @@ header h1 {
 .sender-vox { background: #ffffff; color: #000; border: 1px solid #000; }
 .sender-sat1 { background: #ffcc00; color: #000; }
 .sender-prosieben { background: #e6001f; color: white; }
+.sender-rtl2 { background: #00549e; color: white; }
+.sender-kabeleins { background: #f39200; color: #000; }
 
 .titel { font-weight: 500; }
 

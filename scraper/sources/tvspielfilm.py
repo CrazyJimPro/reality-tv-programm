@@ -1,9 +1,10 @@
 """Scraper fuer den TV-Spielfilm-Aggregator (tvspielfilm.de).
 
 Liefert - anders als die einzelnen Sender-Seiten - eine Vorschau von bis zu
-14 Tagen und deckt alle vier gewuenschten Sender ueber dieselbe Seitenstruktur
+14 Tagen und deckt alle gewuenschten Sender ueber dieselbe Seitenstruktur
 ab. Dient hier hauptsaechlich dazu, die Termine der "uebernaechsten Woche"
-zu befuellen, die rtl.de nicht mehr anzeigt.
+zu befuellen, die rtl.de nicht mehr anzeigt - und ist die einzige Quelle
+fuer Sat.1, ProSieben, RTL2 und Kabel Eins ueberhaupt.
 
 Struktur (Stand September 2026, per Browser verifiziert):
   https://www.tvspielfilm.de/tv-programm/sendungen/rtl,RTL.html?date=2026-09-20
@@ -35,6 +36,8 @@ SENDER_SLUGS = {
     "VOX": "vox,VOX",
     "Sat.1": "sat1,SAT1",
     "ProSieben": "prosieben,PRO7",
+    "RTL2": "rtl-zwei,RTL2",
+    "Kabel Eins": "kabel-eins,K1",
 }
 
 TAGE_IM_VORAUS = 14
