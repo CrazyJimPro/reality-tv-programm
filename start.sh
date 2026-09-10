@@ -18,13 +18,6 @@ echo
 
 ZIEL_ORDNER="$HOME/reality-tv-programm"
 
-# --- -1. Pruefen, ob auf GitHub eine neuere start.sh liegt. Wird eine
-# gefunden, wird NICHT nur diese eine Datei ersetzt, sondern (in Schritt 0)
-# das GESAMTE Projekt frisch nachgeladen - sonst wuerde der Rest des Codes
-# (webapp/, scraper/, ...) einer bereits installierten Kopie fuer immer auf
-# dem Stand der Erstinstallation haengen bleiben, selbst wenn sich start.sh
-# "selbst aktualisiert". Schlaegt lautlos fehl, wenn kein Internet
-# verfuegbar ist (alte Version laeuft dann einfach weiter). ---
 # Laedt eine Datei aus dem Repository nach $2 (leise, curl oder wget).
 hole_datei() {
     if command -v curl >/dev/null 2>&1; then
@@ -48,36 +41,55 @@ alte_instanz_beenden() {
     sleep 1
 }
 
+# --- -1. Pruefen, ob auf GitHub eine neuere Version liegt. Verglichen wird
+# die Versionsnummer aus der Datei VERSION - und aufgefrischt wird nur, wenn
+# die dort WIRKLICH neuer ist.
+#
+# Frueher wurde stattdessen start.sh byteweise mit der Fassung auf GitHub
+# verglichen. Das hatte zwei Nachteile: Aenderungen am uebrigen Code fielen
+# gar nicht auf, und da raw.githubusercontent.com fuenf Minuten
+# zwischenspeichert (einzelne Server liefern auch laenger alte Staende aus),
+# schlug der Vergleich staendig an und frischte bei jedem Start alles auf -
+# samt der unsinnigen Meldung "neu: 1.4.4, installiert: 1.4.5". Wird
+# aufgefrischt, kommen alle Dateien ohnehin in ihrer neuen Fassung mit. ---
 NEUERE_VERSION_GEFUNDEN=""
-TMP_SELF="$(mktemp)"
-hole_datei start.sh "$TMP_SELF"
-if [ -s "$TMP_SELF" ] && head -1 "$TMP_SELF" | grep -q "^#!/usr/bin/env bash"; then
-    if ! cmp -s "$TMP_SELF" "$SELBST"; then
-        NEUERE_VERSION_GEFUNDEN=1
-    fi
-else
-    echo "Selbst-Update-Pruefung fehlgeschlagen (kein Internet oder Netzwerk blockiert) - fahre mit der vorhandenen Version fort."
-fi
-rm -f "$TMP_SELF"
 
-# Zweiter Ausloeser: die Versionsnummer. Der Vergleich oben schlaegt nur an,
-# wenn sich start.sh SELBST geaendert hat - Aenderungen an Web-App, Vorlagen
-# oder Scraper tun das nicht. Ohne diesen Vergleich bliebe eine Installation
-# genau dann stehen, wenn nur der uebrige Code neu ist (genau so passiert
-# zwischen v1.4.1 und v1.4.2).
-if [ -f VERSION ]; then
-    TMP_VER="$(mktemp)"
-    hole_datei VERSION "$TMP_VER"
-    if [ -s "$TMP_VER" ]; then
-        VERSION_NEU="$(tr -d '\r' < "$TMP_VER" | head -1)"
+# Rechnet "1.4.7" in eine vergleichbare Zahl um; leer, wenn die Angabe nicht
+# dem Muster Zahl.Zahl.Zahl entspricht.
+version_zu_zahl() {
+    case "$1" in
+        ''|*[!0-9.]*) return 1 ;;
+    esac
+    _rest="${1#*.}"
+    _a="${1%%.*}"; _b="${_rest%%.*}"; _c="${_rest#*.}"
+    case "$_c" in ''|*[!0-9]*) return 1 ;; esac
+    case "$_b" in ''|*[!0-9]*) return 1 ;; esac
+    case "$_a" in ''|*[!0-9]*) return 1 ;; esac
+    echo $(( _a * 1000000 + _b * 1000 + _c ))
+}
+
+TMP_VER="$(mktemp)"
+# Der angehaengte Zufallswert umgeht den Zwischenspeicher von GitHub.
+hole_datei "VERSION?nocache=$$$(date +%s)" "$TMP_VER"
+if [ -s "$TMP_VER" ]; then
+    VERSION_NEU="$(tr -d '\r' < "$TMP_VER" | head -1)"
+    if [ -f VERSION ]; then
         VERSION_LOKAL="$(tr -d '\r' < VERSION | head -1)"
-        if [ -n "$VERSION_NEU" ] && [ "$VERSION_NEU" != "$VERSION_LOKAL" ]; then
+        ZAHL_NEU="$(version_zu_zahl "$VERSION_NEU" || true)"
+        ZAHL_LOKAL="$(version_zu_zahl "$VERSION_LOKAL" || true)"
+        if [ -n "$ZAHL_NEU" ] && [ -n "$ZAHL_LOKAL" ] && [ "$ZAHL_NEU" -gt "$ZAHL_LOKAL" ]; then
             echo "Neue Version verfuegbar: $VERSION_NEU (installiert: $VERSION_LOKAL)"
             NEUERE_VERSION_GEFUNDEN=1
         fi
+    elif [ -f requirements.txt ]; then
+        # Installation vor v1.4.1: noch gar keine VERSION-Datei vorhanden.
+        echo "Installierte Fassung ohne Versionsangabe - frische auf $VERSION_NEU auf."
+        NEUERE_VERSION_GEFUNDEN=1
     fi
-    rm -f "$TMP_VER"
+else
+    echo "Versionspruefung fehlgeschlagen (kein Internet oder Netzwerk blockiert) - fahre mit der vorhandenen Version fort."
 fi
+rm -f "$TMP_VER"
 
 # --- 0. Projektordner bestimmen und bei Bedarf (neu) laden: entweder weil
 # hier noch gar kein komplettes Projekt liegt (nur diese eine Datei wurde

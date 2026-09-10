@@ -5,47 +5,21 @@ cd /d "%~dp0"
 echo === Reality-TV Programmuebersicht ===
 echo.
 
-set "SELBST=%~f0"
 set "ZIEL_ORDNER=%USERPROFILE%\reality-tv-programm"
 
-rem --- -1. Pruefen, ob auf GitHub eine neuere start.bat liegt. Wird eine
-rem     gefunden, wird NICHT nur diese eine Datei ersetzt, sondern (in
-rem     Schritt 0) das GESAMTE Projekt frisch nachgeladen - sonst wuerde
-rem     der Rest des Codes (webapp/, scraper/, ...) einer bereits
-rem     installierten Kopie fuer immer auf dem Stand der Erstinstallation
-rem     haengen bleiben, selbst wenn sich start.bat "selbst aktualisiert".
-rem     Schlaegt nicht mehr lautlos fehl, sondern meldet sich, wenn kein
-rem     Internet/TLS-Verbindung klappt. ---
+rem --- -1. Pruefen, ob auf GitHub eine neuere Version liegt. Verglichen wird
+rem     die Versionsnummer aus der Datei VERSION - und aufgefrischt wird nur,
+rem     wenn die dort WIRKLICH neuer ist.
+rem
+rem     Frueher wurde stattdessen start.bat byteweise mit der Fassung auf
+rem     GitHub verglichen. Das hatte zwei Nachteile: Aenderungen am uebrigen
+rem     Code fielen gar nicht auf, und da raw.githubusercontent.com fuenf
+rem     Minuten zwischenspeichert (einzelne Server liefern auch laenger alte
+rem     Staende aus), schlug der Vergleich staendig an und frischte bei jedem
+rem     Start alles auf - samt der unsinnigen Meldung "neu: 1.4.4,
+rem     installiert: 1.4.5". Wird aufgefrischt, kommen alle Dateien ohnehin
+rem     in ihrer neuen Fassung mit (Schritt 0). ---
 set "NEUERE_VERSION_GEFUNDEN="
-del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
-> "%TEMP%\rtv_selfupdate.ps1" (
-    echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    echo try {
-    echo     ^(New-Object System.Net.WebClient^).DownloadFile^('https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/start.bat','%TEMP%\rtv_start_latest.bat'^)
-    echo } catch {
-    echo     Write-Host "SELBSTUPDATE-FEHLER: $_"
-    echo }
-)
-powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_selfupdate.ps1"
-del "%TEMP%\rtv_selfupdate.ps1" >nul 2>nul
-if exist "%TEMP%\rtv_start_latest.bat" (
-    findstr /b /l /c:"@echo off" "%TEMP%\rtv_start_latest.bat" >nul 2>nul
-    if not errorlevel 1 (
-        fc /b "%TEMP%\rtv_start_latest.bat" "%SELBST%" >nul 2>nul
-        if errorlevel 1 set "NEUERE_VERSION_GEFUNDEN=1"
-    ) else (
-        echo Selbst-Update-Pruefung: heruntergeladene Datei sieht beschaedigt aus, ignoriere sie.
-    )
-    del "%TEMP%\rtv_start_latest.bat" >nul 2>nul
-) else (
-    echo Selbst-Update-Pruefung fehlgeschlagen ^(kein Internet oder Netzwerk/Firewall blockiert^) - fahre mit der vorhandenen Version fort.
-)
-
-rem     Zweiter Ausloeser: die Versionsnummer. Der Vergleich oben schlaegt nur
-rem     an, wenn sich start.bat SELBST geaendert hat - Aenderungen an Web-App,
-rem     Vorlagen oder Scraper tun das nicht. Ohne diesen Vergleich bliebe eine
-rem     Installation genau dann stehen, wenn nur der uebrige Code neu ist
-rem     (genau so passiert zwischen v1.4.1 und v1.4.2).
 call :pruefe_version
 
 rem --- 0. Projektordner bestimmen und bei Bedarf (neu) laden: entweder weil
@@ -301,27 +275,65 @@ rem --- Vergleicht die lokale VERSION mit der auf GitHub. Unterprogramm statt
 rem     Klammer-Block, weil "for /f" mit Pipe darin sonst am cmd.exe-Escaping
 rem     in verschachtelten Bloecken scheitert. ---
 :pruefe_version
-if not exist "%~dp0VERSION" goto :eof
 set "RTV_VERSION_LOKAL="
 set "RTV_VERSION_NEU="
-for /f "usebackq delims=" %%v in ("%~dp0VERSION") do set "RTV_VERSION_LOKAL=%%v"
+if exist "%~dp0VERSION" for /f "usebackq delims=" %%v in ("%~dp0VERSION") do set "RTV_VERSION_LOKAL=%%v"
 del "%TEMP%\rtv_version_latest.txt" >nul 2>nul
+rem Der angehaengte Zufallswert umgeht den Zwischenspeicher von GitHub -
+rem sonst kommt hier minutenlang eine veraltete Versionsnummer an.
 > "%TEMP%\rtv_versioncheck.ps1" (
     echo [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     echo try {
-    echo     ^(New-Object System.Net.WebClient^).DownloadFile^('https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/VERSION','%TEMP%\rtv_version_latest.txt'^)
+    echo     ^(New-Object System.Net.WebClient^).DownloadFile^('https://raw.githubusercontent.com/CrazyJimPro/reality-tv-programm/main/VERSION?nocache=%RANDOM%%RANDOM%','%TEMP%\rtv_version_latest.txt'^)
     echo } catch { }
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_versioncheck.ps1"
 del "%TEMP%\rtv_versioncheck.ps1" >nul 2>nul
-if not exist "%TEMP%\rtv_version_latest.txt" goto :eof
+if not exist "%TEMP%\rtv_version_latest.txt" (
+    echo Versionspruefung fehlgeschlagen ^(kein Internet oder Netzwerk/Firewall blockiert^) - fahre mit der vorhandenen Version fort.
+    goto :eof
+)
 for /f "usebackq delims=" %%v in ("%TEMP%\rtv_version_latest.txt") do set "RTV_VERSION_NEU=%%v"
 del "%TEMP%\rtv_version_latest.txt" >nul 2>nul
 if not defined RTV_VERSION_NEU goto :eof
-if not defined RTV_VERSION_LOKAL goto :eof
-if "%RTV_VERSION_LOKAL%"=="%RTV_VERSION_NEU%" goto :eof
-echo Neue Version verfuegbar: %RTV_VERSION_NEU% ^(installiert: %RTV_VERSION_LOKAL%^)
-set "NEUERE_VERSION_GEFUNDEN=1"
+
+rem Installationen vor v1.4.1 haben noch gar keine VERSION-Datei - die sind
+rem in jedem Fall veraltet.
+if not defined RTV_VERSION_LOKAL (
+    echo Installierte Fassung ohne Versionsangabe - frische auf %RTV_VERSION_NEU% auf.
+    set "NEUERE_VERSION_GEFUNDEN=1"
+    goto :eof
+)
+
+call :version_zu_zahl "%RTV_VERSION_LOKAL%" RTV_ZAHL_LOKAL
+call :version_zu_zahl "%RTV_VERSION_NEU%" RTV_ZAHL_NEU
+if not defined RTV_ZAHL_LOKAL goto :eof
+if not defined RTV_ZAHL_NEU goto :eof
+if %RTV_ZAHL_NEU% GTR %RTV_ZAHL_LOKAL% (
+    echo Neue Version verfuegbar: %RTV_VERSION_NEU% ^(installiert: %RTV_VERSION_LOKAL%^)
+    set "NEUERE_VERSION_GEFUNDEN=1"
+)
+goto :eof
+
+rem --- Rechnet "1.4.7" in eine vergleichbare Zahl um. %1 = Version,
+rem     %2 = Name der Zielvariablen. Bleibt leer, wenn die Angabe nicht dem
+rem     Muster Zahl.Zahl.Zahl entspricht - dann wird lieber nicht
+rem     aufgefrischt als auf Verdacht. ---
+:version_zu_zahl
+set "%~2="
+set "RTV_TEIL1="
+set "RTV_TEIL2="
+set "RTV_TEIL3="
+for /f "tokens=1-3 delims=." %%a in ("%~1") do (
+    set "RTV_TEIL1=%%a"
+    set "RTV_TEIL2=%%b"
+    set "RTV_TEIL3=%%c"
+)
+if not defined RTV_TEIL3 goto :eof
+echo %RTV_TEIL1%%RTV_TEIL2%%RTV_TEIL3%| findstr /r "^[0-9][0-9]*$" >nul 2>nul
+if errorlevel 1 goto :eof
+set /a "RTV_ZAHL=%RTV_TEIL1%*1000000+%RTV_TEIL2%*1000+%RTV_TEIL3%" >nul 2>nul
+set "%~2=%RTV_ZAHL%"
 goto :eof
 
 rem --- Beendet eine noch laufende Instanz. Erst hoeflich ueber /beenden,
