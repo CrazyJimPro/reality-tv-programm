@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reality-TV Programm</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("rtv-theme");
+        if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <header>
@@ -15,6 +23,7 @@
       <form method="post" action="{{ url_for('aktualisieren') }}" class="aktualisieren-form" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Aktualisiere ... (1-2 Minuten)';">
         <button type="submit">Jetzt aktualisieren</button>
       </form>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten">🌙</button>
     </nav>
   </header>
 
@@ -74,5 +83,7 @@
   <footer>
     <p>Läuft lokal auf deinem Rechner. Liste der erkannten Formate: <code>config/reality_shows.json</code>.</p>
   </footer>
+
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>
 </html>

@@ -5,12 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sendungen verwalten</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("rtv-theme");
+        if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <header>
     <h1>Sendungen verwalten</h1>
     <p class="subtitle">Vorschläge an-/abwählen, eigene Sendungen mit "Hinzufügen" ergänzen (beliebig oft wiederholbar) und erst zum Schluss einmal "Speichern" — das stößt dann sofort einen neuen Datenabruf an.</p>
-    <nav class="nav-back"><a href="{{ url_for('index') }}">&larr; zurück zur Übersicht</a></nav>
+    <nav class="nav-back">
+      <a href="{{ url_for('index') }}">&larr; zurück zur Übersicht</a>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten">🌙</button>
+    </nav>
   </header>
 
   {% if gespeichert %}
@@ -98,5 +109,6 @@
       nameInput.focus();
     });
   </script>
+  <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>
 </html>
