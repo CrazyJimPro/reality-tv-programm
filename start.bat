@@ -240,13 +240,10 @@ del "%TEMP%\rtv_shortcut.ps1" >nul 2>nul
 
 rem --- 5. Web-App starten und Browser oeffnen (nur falls nicht schon eine
 rem     laeuft - sonst Port-Konflikt, z.B. bei erneutem Klick auf die
-rem     Desktop-Verknuepfung waehrend die App schon offen ist). Der
-rem     Zustandstext in der netstat-Ausgabe ist sprachabhaengig (z.B.
-rem     "LISTENING" vs. "ABHOEREN" auf deutschem Windows) - deshalb wird
-rem     stattdessen direkt geprueft, ob 5000 als LOKALE Adresse auftaucht
-rem     (2. Spalte), unabhaengig vom Zustandstext. ---
-netstat -ano | findstr /r /c:"^ *TCP *[^ ]*:5000 " >nul 2>nul
-if not errorlevel 1 (
+rem     Desktop-Verknuepfung waehrend die App schon offen ist). Geprueft wird
+rem     mit einem echten Verbindungsversuch, siehe :pruefe_port. ---
+call :pruefe_port
+if "!PORT_ANTWORTET!"=="JA" (
     echo Web-App laeuft bereits - stosse Aktualisierung an und oeffne Browser ...
     rem Auch beim Klick auf die Verknuepfung waehrend die App schon laeuft
     rem sollen frische Daten geholt werden. Der Aufruf kommt sofort zurueck,
@@ -316,13 +313,27 @@ rem --- Beendet eine noch laufende Instanz. Erst hoeflich ueber /beenden,
 rem     danach notfalls hart ueber die PID auf Port 5000 - Versionen vor
 rem     v1.4.0 kennen /beenden noch gar nicht. ---
 :alte_instanz_beenden
-netstat -ano | findstr /r /c:"^ *TCP *[^ ]*:5000 " >nul 2>nul
-if errorlevel 1 goto :eof
+call :pruefe_port
+if not "%PORT_ANTWORTET%"=="JA" goto :eof
 echo Beende die noch laufende Version ^(sonst liefe der alte Code weiter^)...
 powershell -NoProfile -Command "try { $null = Invoke-WebRequest -UseBasicParsing -Method POST -Uri 'http://127.0.0.1:5000/beenden' -TimeoutSec 10 } catch { }" >nul 2>nul
 ping -n 4 127.0.0.1 >nul
-netstat -ano | findstr /r /c:"^ *TCP *[^ ]*:5000 " >nul 2>nul
-if errorlevel 1 goto :eof
-for /f "tokens=5" %%p in ('netstat -ano ^| findstr /r /c:"^ *TCP *[^ ]*:5000 "') do taskkill /F /T /PID %%p >nul 2>nul
+call :pruefe_port
+if not "%PORT_ANTWORTET%"=="JA" goto :eof
+rem Versionen vor v1.4.0 kennen /beenden nicht - dann gezielt den lauschenden
+rem Prozess beenden, aber NUR wenn es wirklich ein Python-Prozess ist. Der
+rem frueher hier benutzte "taskkill /T" auf eine aus netstat gelesene PID hat
+rem im Test die eigene Prozesskette mit abgeschossen.
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -match 'python') { Stop-Process -Id $p.Id -Force } }" >nul 2>nul
 ping -n 3 127.0.0.1 >nul
+goto :eof
+
+rem --- Prueft mit einem echten Verbindungsversuch, ob auf Port 5000 eine App
+rem     antwortet. Die frueher benutzte netstat-Textsuche war unzuverlaessig:
+rem     der Zustandstext ist sprachabhaengig, und es tauchen dort auch
+rem     Verbindungsreste auf - das Skript hielt sich dadurch faelschlich fuer
+rem     "laeuft schon", obwohl gar nichts lief. ---
+:pruefe_port
+set "PORT_ANTWORTET="
+for /f "delims=" %%r in ('powershell -NoProfile -Command "$c = New-Object Net.Sockets.TcpClient; try { $c.Connect('127.0.0.1',5000); 'JA' } catch { 'NEIN' } finally { $c.Close() }"') do set "PORT_ANTWORTET=%%r"
 goto :eof
