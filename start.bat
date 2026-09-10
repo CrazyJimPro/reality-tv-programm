@@ -91,6 +91,14 @@ if defined MUSS_LADEN (
     exit /b 0
 )
 
+rem --- 0.5 Welcher Stand laeuft hier? Steht auch in logs\start.log und
+rem     oben in der Kopfzeile der Web-App. ---
+if exist "%~dp0VERSION" (
+    < "%~dp0VERSION" set /p RTV_VERSION=
+    echo Version: !RTV_VERSION!
+    echo.
+)
+
 rem --- 1. Python vorhanden? Sonst automatisch per winget installieren ---
 rem Ein blosses "where python" reicht nicht: Windows legt standardmaessig
 rem einen "python"-Platzhalter an, der nur auf den Microsoft Store verweist
@@ -169,23 +177,37 @@ if not errorlevel 1 (
     if errorlevel 1 echo Hinweis: Aufgabe "RealityTV_Scraper" konnte nicht entfernt werden - ggf. manuell in der Aufgabenplanung loeschen.
 )
 
-rem --- 4.5 Desktop-Verknuepfung anlegen, falls noch nicht vorhanden - startet
-rem     kuenftig per Doppelklick ohne sichtbares Konsolenfenster (siehe
-rem     start_versteckt.bat/.vbs). Alle Meldungen landen dabei in
-rem     logs\start.log, falls doch mal was schiefgeht. ---
-if not exist "%USERPROFILE%\Desktop\Reality-TV Programm.lnk" (
-    echo Richte Desktop-Verknuepfung ein...
-    > "%TEMP%\rtv_shortcut.ps1" (
-        echo $WshShell = New-Object -ComObject WScript.Shell
-        echo $Shortcut = $WshShell.CreateShortcut^('%USERPROFILE%\Desktop\Reality-TV Programm.lnk'^)
-        echo $Shortcut.TargetPath = '%~dp0start_versteckt.vbs'
-        echo $Shortcut.WorkingDirectory = '%~dp0'
-        echo $Shortcut.Description = 'Reality-TV Programmuebersicht starten'
-        echo $Shortcut.Save^(^)
-    )
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_shortcut.ps1" >nul 2>nul
-    del "%TEMP%\rtv_shortcut.ps1" >nul 2>nul
+rem --- 4.5 Desktop-Verknuepfung anlegen, falls noch nicht vorhanden -
+rem     startet kuenftig per Doppelklick ohne sichtbares Konsolenfenster
+rem     (siehe start_versteckt.bat/.vbs), Meldungen landen in logs\start.log.
+rem
+rem     Der Desktop-Ordner wird NICHT mehr als "%USERPROFILE%\Desktop"
+rem     geraten: ist der Desktop nach OneDrive umgeleitet (auf Windows 11
+rem     haeufig), gibt es diesen Ordner gar nicht - die Verknuepfung landete
+rem     dann im Nichts bzw. schlug fehl, und der Fehler wurde auch noch nach
+rem     nul geschluckt. [Environment]::GetFolderPath('Desktop') liefert immer
+rem     den tatsaechlich benutzten Ordner; Erfolg wie Fehlschlag werden
+rem     ausgegeben (und landen damit auch in logs\start.log). ---
+> "%TEMP%\rtv_shortcut.ps1" (
+    echo $ErrorActionPreference = 'Stop'
+    echo try {
+    echo     $desktop = [Environment]::GetFolderPath^('Desktop'^)
+    echo     if ^(-not $desktop -or -not ^(Test-Path -LiteralPath $desktop^)^) { throw "Desktop-Ordner nicht gefunden (gemeldet: '$desktop')" }
+    echo     $ziel = Join-Path $desktop 'Reality-TV Programm.lnk'
+    echo     if ^(Test-Path -LiteralPath $ziel^) { Write-Host "Desktop-Verknuepfung vorhanden: $ziel"; exit 0 }
+    echo     $WshShell = New-Object -ComObject WScript.Shell
+    echo     $Shortcut = $WshShell.CreateShortcut^($ziel^)
+    echo     $Shortcut.TargetPath = '%~dp0start_versteckt.vbs'
+    echo     $Shortcut.WorkingDirectory = '%~dp0'
+    echo     $Shortcut.Description = 'Reality-TV Programmuebersicht starten'
+    echo     $Shortcut.Save^(^)
+    echo     Write-Host "Desktop-Verknuepfung angelegt: $ziel"
+    echo } catch {
+    echo     Write-Host "Desktop-Verknuepfung konnte nicht angelegt werden: $_"
+    echo }
 )
+powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_shortcut.ps1"
+del "%TEMP%\rtv_shortcut.ps1" >nul 2>nul
 
 rem --- 5. Web-App starten und Browser oeffnen (nur falls nicht schon eine
 rem     laeuft - sonst Port-Konflikt, z.B. bei erneutem Klick auf die
@@ -212,8 +234,21 @@ echo.
 echo Oeffne http://127.0.0.1:5000 im Browser ...
 echo Die Programmdaten werden dabei im Hintergrund frisch geholt ^(1-2 Minuten^),
 echo die Seite aktualisiert sich von selbst, sobald der Lauf fertig ist.
-echo Zum Beenden den Knopf "Beenden" oben auf der Seite benutzen - danach
-echo laeuft nichts mehr im Hintergrund.
+echo Dieses Fenster schliesst sich gleich von selbst, die App laeuft dann
+echo ohne Fenster weiter. Zum Beenden den Knopf "Beenden" oben auf der Seite
+echo benutzen - danach laeuft nichts mehr im Hintergrund.
 echo.
+rem Die App wird mit pythonw.exe gestartet: die hat gar kein Konsolenfenster,
+rem dadurch kann dieses Fenster hier sofort zugehen, waehrend die App
+rem weiterlaeuft. Ihre Meldungen schreibt sie nach logs\webapp.log.
+rem Browser erst danach oeffnen - vorher antwortet Port 5000 noch nicht und
+rem der Browser zeigte kurz eine Fehlerseite. ping statt timeout, weil
+rem timeout bei umgeleiteter Eingabe (versteckter Start) aussteigt.
+if exist "%~dp0venv\Scripts\pythonw.exe" (
+    start "" "%~dp0venv\Scripts\pythonw.exe" "%~dp0webapp\app.py"
+) else (
+    start "" "%~dp0venv\Scripts\python.exe" "%~dp0webapp\app.py"
+)
+ping -n 4 127.0.0.1 >nul
 start "" http://127.0.0.1:5000
-venv\Scripts\python.exe webapp\app.py
+exit /b 0

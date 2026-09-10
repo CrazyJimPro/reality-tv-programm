@@ -243,6 +243,20 @@ footer code {
   cursor: wait;
 }
 
+/* Versionsanzeige in der Kopfzeile - damit man sieht, welcher Stand laeuft
+   (kommt aus der Datei VERSION, die das Selbst-Update mit auffrischt). */
+.version {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
 .beenden-form {
   margin: 0;
 }

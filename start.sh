@@ -91,6 +91,13 @@ if [ -n "$MUSS_LADEN" ]; then
     exec "$PROJEKT_ZIEL/start.sh" "$@"
 fi
 
+# --- 0.5 Welcher Stand laeuft hier? Steht auch in logs/start.log und oben
+# in der Kopfzeile der Web-App. ---
+if [ -f VERSION ]; then
+    echo "Version: $(cat VERSION)"
+    echo
+fi
+
 # --- 1. Python3 vorhanden? Sonst automatisch per apt installieren ---
 if ! command -v python3 >/dev/null 2>&1; then
     echo "python3 wurde nicht gefunden. Versuche automatische Installation..."
@@ -175,8 +182,17 @@ echo
 echo "Oeffne http://127.0.0.1:5000 im Browser ..."
 echo "Die Programmdaten werden dabei im Hintergrund frisch geholt (1-2 Minuten),"
 echo "die Seite aktualisiert sich von selbst, sobald der Lauf fertig ist."
+echo "Die App laeuft im Hintergrund weiter, dieses Terminal wird nicht belegt."
 echo "Zum Beenden den Knopf \"Beenden\" oben auf der Seite benutzen - danach"
 echo "laeuft nichts mehr im Hintergrund."
 echo
-( sleep 1 && xdg-open http://127.0.0.1:5000 >/dev/null 2>&1 || true ) &
-"$VENV_PYTHON" webapp/app.py
+# Die App laeuft im Hintergrund weiter, damit dieses Terminal nicht belegt
+# bleibt (per Desktop-Verknuepfung gibt es ohnehin keins). Ihre Meldungen
+# schreibt sie nach logs/webapp.log. Der Browser wird erst geoeffnet, wenn
+# Port 5000 wirklich antwortet - sonst zeigt er kurz eine Fehlerseite.
+nohup "$VENV_PYTHON" webapp/app.py >> logs/webapp.log 2>&1 &
+for _ in $(seq 1 20); do
+    if curl -s -o /dev/null --connect-timeout 1 http://127.0.0.1:5000/ 2>/dev/null; then break; fi
+    sleep 1
+done
+xdg-open http://127.0.0.1:5000 >/dev/null 2>&1 || true

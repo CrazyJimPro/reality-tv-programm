@@ -12,6 +12,7 @@ inzwischen wieder entfernt.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 import signal
@@ -48,6 +49,20 @@ VERALTET_AB_STUNDEN = 24
 STAFFEL_MUSTER = re.compile(r"Staffel\s*(\d+)", re.IGNORECASE)
 FOLGE_MUSTER = re.compile(r"Folge\s*(\d+)", re.IGNORECASE)
 
+VERSION_PFAD = PROJEKT_ROOT / "VERSION"
+LOG_PFAD = PROJEKT_ROOT / "logs" / "webapp.log"
+
+
+def _version() -> str:
+    """Versionsnummer aus der Datei VERSION im Projektordner. Wird oben in
+    der Kopfzeile angezeigt, damit man sieht, welcher Stand gerade laeuft -
+    das Selbst-Update frischt den ganzen Ordner auf, also kommt die Datei
+    immer passend zum restlichen Code mit."""
+    try:
+        return VERSION_PFAD.read_text(encoding="utf-8").strip() or "unbekannt"
+    except OSError:
+        return "unbekannt"
+
 # Status des Scrape-Laufs, damit die Oberflaeche zeigen kann, dass gerade
 # aktualisiert wird - und vor allem, wenn es schiefgegangen ist (frueher gab
 # es immer eine Erfolgsmeldung, egal wie der Lauf ausging).
@@ -56,6 +71,37 @@ _scrape_status: dict[str, object] = {"laeuft": False, "fehler": None, "fertig_am
 # Referenz auf den gerade laufenden Scraper-Prozess, damit "Beenden" ihn
 # mitnehmen kann - sonst liefe er als Waise weiter, obwohl die App zu ist.
 _laufender_prozess: subprocess.Popen | None = None
+
+
+def _logging_einrichten() -> None:
+    """Meldungen zusaetzlich nach logs/webapp.log schreiben.
+
+    start.bat startet die App ueber pythonw.exe, damit kein Konsolenfenster
+    offen bleibt - dann gibt es aber auch keine sichtbare Ausgabe mehr.
+    Ohne diese Datei waere ein Startproblem nicht mehr nachvollziehbar."""
+    LOG_PFAD.parent.mkdir(parents=True, exist_ok=True)
+    handler: list[logging.Handler] = [logging.FileHandler(LOG_PFAD, encoding="utf-8")]
+    # Zusaetzlich auf den Bildschirm nur, wenn wirklich ein Terminal dranhaengt:
+    # unter pythonw.exe gibt es gar keinen stderr, und start.sh leitet stderr
+    # bereits in dieselbe Logdatei um - dann stuende jede Zeile doppelt drin.
+    if sys.stderr is not None and getattr(sys.stderr, "isatty", lambda: False)():
+        handler.append(logging.StreamHandler())
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        handlers=handler,
+    )
+
+    def _unbehandelt(typ, wert, spur):
+        logging.getLogger("webapp").critical("Unbehandelter Fehler", exc_info=(typ, wert, spur))
+
+    sys.excepthook = _unbehandelt
+
+
+@app.context_processor
+def _vorlagen_kontext() -> dict:
+    """Stellt die Versionsnummer allen Vorlagen zur Verfuegung."""
+    return {"version": _version()}
 
 
 def _staffel_folge(beschreibung: str | None) -> str | None:
@@ -318,6 +364,8 @@ def einstellungen():
 
 
 if __name__ == "__main__":
+    _logging_einrichten()
+    logging.getLogger("webapp").info("Reality-TV Programm Version %s startet", _version())
     # Tabellen anlegen, falls die App vor dem allerersten Scrape-Lauf
     # geoeffnet wird - sonst wuerde die Uebersicht ueber eine noch leere
     # Datenbank stolpern.

@@ -37,8 +37,16 @@ Hinweis und lädt sich von selbst neu, sobald der Abruf fertig ist).
 
 **Beim ersten Lauf wird außerdem automatisch eine Desktop-Verknüpfung
 angelegt** ("Reality-TV Programm") — ab dann reicht ein Doppelklick darauf,
-komplett **ohne sichtbares Konsolen-/Terminalfenster**. Alle Meldungen
-landen dabei in `logs/start.log`, falls doch mal etwas schiefgeht. Läuft die
+komplett **ohne sichtbares Konsolen-/Terminalfenster**. Auch beim direkten
+Start von `start.bat` bleibt kein Fenster offen: die App wird über
+`pythonw.exe` gestartet, das Fenster schließt sich nach dem Einrichten von
+selbst. Meldungen des Startskripts landen in `logs/start.log`, die der App
+in `logs/webapp.log`, falls doch mal etwas schiefgeht.
+
+Der Desktop-Ordner wird dabei beim System erfragt statt geraten — ist der
+Desktop nach OneDrive umgeleitet (unter Windows 11 häufig), landet die
+Verknüpfung trotzdem dort, wo sie sichtbar ist. Wo sie angelegt wurde (oder
+warum nicht), steht in der Ausgabe bzw. in `logs/start.log`. Läuft die
 Web-App schon (z.B. weil die Verknüpfung versehentlich zweimal angeklickt
 wurde), stößt ein erneuter Klick nur eine Aktualisierung an und öffnet den
 Browser erneut, statt einen zweiten Prozess zu starten. **Zum Beenden den Knopf „Beenden“ oben auf
@@ -48,6 +56,13 @@ Task-Manager nötig, auch wenn ohne sichtbares Fenster gestartet wurde).
 Die App muss und soll nicht dauerhaft laufen: einfach starten, wenn du
 reinschauen willst — dabei werden die Daten frisch geholt — und danach
 wieder beenden.
+
+**Welche Version läuft gerade?** Steht oben in der Kopfzeile der Web-App als
+kleines Abzeichen (z.B. `v1.4.1`) und beim Start auch in `logs/start.log`.
+Die Nummer kommt aus der Datei `VERSION` im Projektordner, die das
+Selbst-Update zusammen mit dem übrigen Code auffrischt — sie zeigt also
+immer den tatsächlich installierten Stand. Die neueste Version steht unter
+[Releases](https://github.com/CrazyJimPro/reality-tv-programm/releases).
 
 Was das Skript im Detail automatisch macht:
 - lädt bei Bedarf den Rest des Projekts von GitHub herunter (nur beim
@@ -152,8 +167,12 @@ nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
   ein Lauf noch läuft — die Übersicht lädt sich damit von selbst neu, sobald
   er fertig ist, und zeigt eine Fehlermeldung, wenn er fehlgeschlagen ist.
   `/beenden` (POST) beendet die App komplett (Knopf "Beenden")
+- `VERSION` — installierte Versionsnummer, wird in der Kopfzeile der Web-App
+  angezeigt (bei jedem Release mit hochzählen)
 - `start.bat` / `start.sh` — die einzige Datei, die man ausführt: Installation
-  + Desktop-Verknüpfung anlegen + Web-App starten, alles in einem
+  + Desktop-Verknüpfung anlegen + Web-App starten, alles in einem. Die App
+  läuft danach ohne Fenster weiter (Windows: `pythonw.exe`, Linux: `nohup`),
+  der Browser wird erst geöffnet, wenn Port 5000 wirklich antwortet
 - `start_versteckt.bat` / `start_versteckt.vbs` (nur Windows) — Ziel der
   Desktop-Verknüpfung: ruft `start.bat` ohne sichtbares Konsolenfenster auf
   und leitet alle Meldungen nach `logs/start.log` um (unter Linux reicht
