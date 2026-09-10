@@ -252,7 +252,7 @@ if "!PORT_ANTWORTET!"=="JA" (
     rem Klammer-Gruppe von cmd.exe auch innerhalb der Anfuehrungszeichen
     rem zickig behandelt - Zuweisung an $null tut dasselbe ohne Pipe.
     powershell -NoProfile -Command "try { $null = Invoke-WebRequest -UseBasicParsing -Method POST -Uri 'http://127.0.0.1:5000/aktualisieren' -TimeoutSec 10 } catch { }" >nul 2>nul
-    start "" http://127.0.0.1:5000
+    powershell -NoProfile -Command "Start-Process 'http://127.0.0.1:5000'" >nul 2>nul
     exit /b 0
 )
 
@@ -267,16 +267,31 @@ echo.
 rem Die App wird mit pythonw.exe gestartet: die hat gar kein Konsolenfenster,
 rem dadurch kann dieses Fenster hier sofort zugehen, waehrend die App
 rem weiterlaeuft. Ihre Meldungen schreibt sie nach logs\webapp.log.
-rem Browser erst danach oeffnen - vorher antwortet Port 5000 noch nicht und
-rem der Browser zeigte kurz eine Fehlerseite. ping statt timeout, weil
-rem timeout bei umgeleiteter Eingabe (versteckter Start) aussteigt.
-if exist "%~dp0venv\Scripts\pythonw.exe" (
-    start "" "%~dp0venv\Scripts\pythonw.exe" "%~dp0webapp\app.py"
-) else (
-    start "" "%~dp0venv\Scripts\python.exe" "%~dp0webapp\app.py"
+rem
+rem WICHTIG: Start ueber PowerShell statt ueber "start". Ein mit "start"
+rem erzeugter Prozess erbt die Ausgabe-Handles dieses Fensters - also auch
+rem logs\start.log, in das start_versteckt.bat umleitet. Die App hielte diese
+rem Datei dann offen, solange sie laeuft; ein erneuter Klick auf die
+rem Desktop-Verknuepfung scheiterte danach lautlos daran, dass sich das Log
+rem nicht beschreiben laesst (es passierte dann einfach GAR nichts).
+rem Start-Process gibt die Handles nicht weiter.
+set "APP_EXE=%~dp0venv\Scripts\pythonw.exe"
+if not exist "!APP_EXE!" set "APP_EXE=%~dp0venv\Scripts\python.exe"
+> "%TEMP%\rtv_startapp.ps1" (
+    echo $exe = '!APP_EXE!'
+    echo $app = '"%~dp0webapp\app.py"'
+    echo Start-Process -FilePath $exe -ArgumentList $app -WorkingDirectory '%~dp0'
+    rem Browser erst oeffnen, wenn Port 5000 antwortet - sonst zeigt er kurz
+    rem eine Fehlerseite.
+    echo for ^($i = 0; $i -lt 30; $i++^) {
+    echo     Start-Sleep -Milliseconds 500
+    echo     $c = New-Object Net.Sockets.TcpClient
+    echo     try { $c.Connect^('127.0.0.1',5000^); $c.Close^(^); break } catch { }
+    echo }
+    echo Start-Process 'http://127.0.0.1:5000'
 )
-ping -n 4 127.0.0.1 >nul
-start "" http://127.0.0.1:5000
+powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\rtv_startapp.ps1"
+del "%TEMP%\rtv_startapp.ps1" >nul 2>nul
 exit /b 0
 
 
