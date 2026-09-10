@@ -188,8 +188,10 @@ footer code {
   border: 1px solid var(--border);
   color: var(--fg);
   border-radius: 999px;
-  padding: 0.4rem 0.7rem;
-  font-size: 1rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
 }
