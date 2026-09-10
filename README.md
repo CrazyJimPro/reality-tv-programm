@@ -6,86 +6,147 @@ Reality-TV-Formate heraus und zeigt sie in einer lokalen Web-App an — mit
 einer Vorschau auf die nächste und übernächste Woche.
 
 Es läuft **nichts im Hintergrund**: die Daten werden geholt, wenn die App
-über die Desktop-Verknüpfung gestartet wird — und mit dem Knopf
-**„Beenden“** auf der Seite ist alles wieder aus.
+gestartet wird — und mit dem Knopf **„Beenden"** auf der Seite ist alles
+wieder aus. Kein Dienst, keine geplante Aufgabe, kein Cronjob.
 
-Läuft unter **Windows und Linux**.
+Läuft unter **Windows und Linux**. In Kurzform:
 
-## Installation: nur eine Datei herunterladen und ausführen
+| | Einmalig installieren | Danach starten |
+|---|---|---|
+| **Windows** | `start.bat` herunterladen und doppelklicken | Desktop-Verknüpfung „Reality-TV Programm" |
+| **Linux** | `start.sh` herunterladen, `chmod +x`, ausführen | Desktop-Verknüpfung „Reality-TV Programm" |
 
-Es reicht, **eine einzige Datei** herunterzuladen — nicht das ganze Repo.
-Der Rest des Projekts wird beim ersten Start automatisch von GitHub
-nachgeladen.
+Ausführlich mit allen Schritten steht das gleich unten.
 
-**Windows:** [`start.bat`](start.bat) herunterladen (Rechtsklick auf den Link
-→ "Ziel speichern unter" bzw. auf GitHub den "Raw"-Button → Strg+S) und
-doppelklicken.
-**Linux:** [`start.sh`](start.sh) herunterladen und ausführen:
+## Erstmalige Installation
+
+Heruntergeladen wird **eine einzige Datei** — nicht das ganze Repository.
+Alles Weitere (Projektcode, Python, Abhängigkeiten, Desktop-Verknüpfung)
+richtet diese Datei selbst ein.
+
+### Windows
+
+1. **Datei herunterladen:**
+   [start.bat](https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.bat)
+   — Rechtsklick auf den Link → *Ziel speichern unter …*, z.B. in `Downloads`.
+   Der Ordner ist egal, die Datei sucht sich ihren Platz selbst.
+2. **Doppelklick auf `start.bat`.** Warnt Windows mit *„Der Computer wurde
+   durch Windows geschützt"*: auf *Weitere Informationen* → *Trotzdem
+   ausführen* klicken (die Datei stammt aus dem Internet und ist nicht
+   signiert).
+3. **Warten.** Beim allerersten Mal dauert es ca. 2–5 Minuten: fehlt Python,
+   wird es per `winget` mitinstalliert, dann folgen virtuelle Umgebung und
+   Abhängigkeiten. Das Fenster zeigt, was gerade passiert, und **schließt
+   sich am Ende von selbst**.
+4. **Fertig.** Der Browser öffnet http://127.0.0.1:5000, die Programmdaten
+   werden dabei im Hintergrund geholt (1–2 Minuten — die Seite zeigt so lange
+   einen Hinweis und lädt sich danach von selbst neu). Auf dem Desktop liegt
+   jetzt die Verknüpfung **„Reality-TV Programm"**.
+
+Installiert wird nach `%USERPROFILE%\reality-tv-programm`
+(also z.B. `C:\Users\DeinName\reality-tv-programm`). Die heruntergeladene
+`start.bat` aus `Downloads` wird danach nicht mehr gebraucht.
+
+### Linux
+
+1. **Terminal öffnen** und diese drei Zeilen ausführen:
+
 ```bash
-chmod +x start.sh && ./start.sh
+curl -fsSL -O https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.sh
+chmod +x start.sh
+./start.sh
 ```
 
-Egal von wo die Datei gestartet wird (Downloads-Ordner, USB-Stick, ...): Beim
-ersten Lauf lädt sie automatisch das komplette Projekt nach
-`%USERPROFILE%\reality-tv-programm` (Windows) bzw. `~/reality-tv-programm`
-(Linux) herunter und macht dort weiter. Danach: Python-Check, virtuelle
-Umgebung und Abhängigkeiten — alles automatisch, ca. 1-2 Minuten beim
-allerersten Mal. Danach öffnet sich automatisch der Browser mit der
-Übersicht unter http://127.0.0.1:5000, während im Hintergrund die aktuellen
-Programmdaten geholt werden (1-2 Minuten; die Seite zeigt so lange einen
-Hinweis und lädt sich von selbst neu, sobald der Abruf fertig ist).
+2. **Warten.** Fehlt Python, wird es per `apt-get` nachinstalliert — dabei
+   fragt das Skript nach dem `sudo`-Passwort. Danach folgen virtuelle
+   Umgebung und Abhängigkeiten (beim allerersten Mal ca. 2–5 Minuten).
+3. **Fertig.** Der Browser öffnet http://127.0.0.1:5000, die Programmdaten
+   werden im Hintergrund geholt. Auf dem Desktop liegt die Verknüpfung
+   **„Reality-TV Programm"** (sofern eine Desktop-Umgebung vorhanden ist —
+   auf einem reinen Server entfällt sie). Manche Dateimanager fragen beim
+   ersten Doppelklick einmalig nach *„Ausführen erlauben"* bzw.
+   *„Vertrauen"*.
 
-**Beim ersten Lauf wird außerdem automatisch eine Desktop-Verknüpfung
-angelegt** ("Reality-TV Programm") — ab dann reicht ein Doppelklick darauf,
-komplett **ohne sichtbares Konsolen-/Terminalfenster**. Auch beim direkten
-Start von `start.bat` bleibt kein Fenster offen: die App wird über
-`pythonw.exe` gestartet, das Fenster schließt sich nach dem Einrichten von
-selbst. Meldungen des Startskripts landen in `logs/start.log`, die der App
-in `logs/webapp.log`, falls doch mal etwas schiefgeht.
+Installiert wird nach `~/reality-tv-programm`. Die heruntergeladene
+`start.sh` wird danach nicht mehr gebraucht.
 
-Der Desktop-Ordner wird dabei beim System erfragt statt geraten — ist der
-Desktop nach OneDrive umgeleitet (unter Windows 11 häufig), landet die
-Verknüpfung trotzdem dort, wo sie sichtbar ist. Wo sie angelegt wurde (oder
-warum nicht), steht in der Ausgabe bzw. in `logs/start.log`. Läuft die
-Web-App schon (z.B. weil die Verknüpfung versehentlich zweimal angeklickt
-wurde), stößt ein erneuter Klick nur eine Aktualisierung an und öffnet den
-Browser erneut, statt einen zweiten Prozess zu starten. **Zum Beenden den Knopf „Beenden“ oben auf
-der Seite benutzen** — danach läuft nichts mehr im Hintergrund (kein
-Task-Manager nötig, auch wenn ohne sichtbares Fenster gestartet wurde).
+## Jedes weitere Mal starten
 
-Die App muss und soll nicht dauerhaft laufen: einfach starten, wenn du
-reinschauen willst — dabei werden die Daten frisch geholt — und danach
-wieder beenden.
+**Doppelklick auf die Desktop-Verknüpfung „Reality-TV Programm"** — unter
+Windows wie unter Linux. Es öffnet sich **kein Konsolen- oder
+Terminalfenster**; nach ein paar Sekunden geht der Browser auf.
 
-**Welche Version läuft gerade?** Steht oben in der Kopfzeile der Web-App als
-kleines Abzeichen (z.B. `v1.4.3`) und beim Start auch in `logs/start.log`.
-Die Nummer kommt aus der Datei `VERSION` im Projektordner, die das
-Selbst-Update zusammen mit dem übrigen Code auffrischt — sie zeigt also
-immer den tatsächlich installierten Stand. Die neueste Version steht unter
+Bei jedem Start passiert automatisch:
+
+1. Es wird geprüft, ob auf GitHub eine **neuere Version** vorliegt. Wenn ja,
+   wird der komplette Code aufgefrischt und die App neu gestartet (eine noch
+   laufende Instanz wird vorher beendet).
+2. Die **Programmdaten werden frisch geholt** (1–2 Minuten, im Hintergrund).
+3. Der Browser öffnet die Übersicht.
+
+Läuft die App bereits, startet ein erneuter Klick keinen zweiten Prozess,
+sondern stößt nur eine Aktualisierung an und öffnet den Browser wieder.
+
+**Ohne Desktop-Verknüpfung** geht es genauso — direkt im Projektordner:
+
+| System  | Datei                                             |
+|---------|---------------------------------------------------|
+| Windows | `%USERPROFILE%\reality-tv-programm\start.bat`     |
+| Linux   | `~/reality-tv-programm/start.sh`                  |
+
+## Beenden
+
+Oben auf der Seite den Knopf **„Beenden"** anklicken. Danach läuft nichts
+mehr im Hintergrund — kein Task-Manager nötig, auch wenn ohne sichtbares
+Fenster gestartet wurde. Das Browser-Fenster kann man anschließend
+schließen.
+
+Nur das Browser-Fenster zu schließen beendet die App **nicht** — sie läuft
+dann weiter und ist unter http://127.0.0.1:5000 weiter erreichbar. Das ist
+unproblematisch, kostet aber unnötig Speicher.
+
+## Welche Version läuft gerade?
+
+Oben in der Kopfzeile der Web-App steht ein kleines Abzeichen, z.B. `v1.4.9`;
+beim Start landet die Nummer auch in `logs/start.log`. Sie kommt aus der
+Datei `VERSION` im Projektordner und zeigt damit immer den tatsächlich
+installierten Stand. Die neueste Version steht unter
 [Releases](https://github.com/CrazyJimPro/reality-tv-programm/releases).
 
-Bei jedem Start wird diese Nummer mit der auf GitHub verglichen; unterscheidet
-sie sich, wird der komplette Code aufgefrischt und neu gestartet — eine noch
-laufende Instanz wird dafür vorher beendet, sonst liefe der alte Stand aus dem
-Arbeitsspeicher einfach weiter.
+Verglichen wird bei jedem Start genau diese Nummer mit der auf GitHub —
+aufgefrischt wird nur, wenn die dort **wirklich neuer** ist.
 
-Was das Skript im Detail automatisch macht:
-- lädt bei Bedarf den Rest des Projekts von GitHub herunter (nur beim
-  allerersten Mal, wenn nur diese eine Datei vorhanden ist)
+## Wo liegt was?
+
+Alles unterhalb von `%USERPROFILE%\reality-tv-programm` bzw.
+`~/reality-tv-programm`:
+
+| Pfad                          | Inhalt                                              |
+|-------------------------------|-----------------------------------------------------|
+| `config/reality_shows.json`   | die persönliche Sendungsliste (bleibt bei Updates erhalten) |
+| `data/programm.db`            | die geholten Sendetermine                           |
+| `logs/start.log`              | Meldungen des Startskripts                          |
+| `logs/webapp.log`             | Meldungen der Web-App                               |
+| `logs/scraper.log`            | Protokoll der Datenabrufe                           |
+| `VERSION`                     | installierte Versionsnummer                         |
+
+Was das Startskript im Einzelnen automatisch erledigt:
+- lädt beim allerersten Mal den Rest des Projekts von GitHub nach
 - prüft, ob Python vorhanden ist — falls nicht: installiert es selbst
   (Windows: `winget`, Linux: `apt-get`, braucht dort `sudo`)
 - legt eine virtuelle Umgebung an und installiert die Abhängigkeiten
 - entfernt eine früher angelegte automatische Aufgabe bzw. den früheren
-  Cron-Eintrag („RealityTV_Scraper“, Mo + Do 06:00 Uhr) — wird nicht mehr
-  gebraucht, seit bei jedem Start aktualisiert wird
-- legt eine Desktop-Verknüpfung an (falls noch nicht vorhanden)
-- startet die Web-App und öffnet den Browser (ohne sichtbares Fenster, wenn
-  über die Desktop-Verknüpfung gestartet); die App holt beim Hochfahren
-  selbst die aktuellen Programmdaten
+  Cron-Eintrag („RealityTV_Scraper", Mo + Do 06:00 Uhr) — seit die
+  Aktualisierung beim Start läuft, wird der nicht mehr gebraucht
+- legt die Desktop-Verknüpfung an (falls noch nicht vorhanden); der
+  Desktop-Ordner wird beim System erfragt, damit sie auch bei einem nach
+  OneDrive umgeleiteten Desktop sichtbar landet
+- startet die Web-App ohne Fenster und öffnet den Browser, sobald sie
+  antwortet
 
-*(Wer lieber das ganze Repo selbst klont/als ZIP lädt, kann das natürlich
-auch tun — `start.bat`/`start.sh` erkennen dann, dass der Rest schon da ist,
-und überspringen den Download.)*
+*(Wer lieber das ganze Repository klont oder als ZIP lädt, kann das tun —
+`start.bat`/`start.sh` erkennen dann, dass der Rest schon da ist, und
+überspringen den Download.)*
 
 ## Danach: Sendungen hinzufügen oder entfernen
 
@@ -226,21 +287,26 @@ crontab -l | grep -v '# RealityTV_Scraper' | crontab -
   Meldung trotzdem erscheint, hilft meist ein manueller Python-Download von
   https://www.python.org/downloads/ (dabei "Add python.exe to PATH"
   anhaken) und `start.bat` danach in einem neuen Terminal erneut starten.
-- **"Selbst-Update-Prüfung fehlgeschlagen":** meist ein TLS-Problem auf
+- **"Versionsprüfung fehlgeschlagen":** meist ein TLS-Problem auf
   älteren Windows-Installationen (Windows nutzt für HTTPS-Verbindungen aus
   der Kommandozeile standardmäßig teils noch TLS 1.0/1.1, GitHub verlangt
   aber TLS 1.2 — wird inzwischen automatisch erzwungen). Zeigt die Meldung
   trotzdem "fehlgeschlagen": Internetverbindung/Firewall/Proxy prüfen, ob
   `raw.githubusercontent.com` erreichbar ist.
-- **Skript wirkt "wie eingefroren" auf altem Stand, obwohl start.bat/
-  start.sh neu heruntergeladen wurde:** ab dieser Version wird bei
-  erkannter neuerer Version nicht mehr nur die Einstiegsdatei ersetzt,
-  sondern das **komplette Projekt** (`%USERPROFILE%\reality-tv-programm`
-  bzw. `~/reality-tv-programm`) frisch nachgeladen — vorher blieb eine
-  bereits installierte Kopie für immer auf dem Stand der Erstinstallation
-  hängen, egal wie oft man die einzelne Datei erneut herunterlud. Als
-  Notlösung hilft immer: aktuelle `start.bat`/`start.sh` manuell neu
-  herunterladen (https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.bat)
-  und den installierten Ordner (`%USERPROFILE%\reality-tv-programm` bzw.
-  `~/reality-tv-programm`) zur Sicherheit einmal komplett löschen, bevor
-  man sie erneut ausführt.
+- **Klick auf die Verknüpfung bewirkt gar nichts** (kein Browser, kein
+  neuer Eintrag in `logs/start.log`): das betrifft Installationen vor
+  v1.4.6. Dort hielt die laufende App die Logdatei offen, wodurch jeder
+  weitere Start sofort abbrach. Abhilfe: die App über den Knopf **„Beenden"**
+  schließen (oder den Rechner neu starten) und die Verknüpfung dann erneut
+  anklicken — damit wird auf die aktuelle Version aufgefrischt, und danach
+  tritt das nicht mehr auf.
+- **Angezeigte Version bleibt auf einem alten Stand:** bis v1.4.2 löste nur
+  eine geänderte `start.bat` eine Auffrischung aus; Releases, die nur den
+  übrigen Code änderten, kamen nicht an. Seit v1.4.8 entscheidet die
+  Versionsnummer. Als Notlösung hilft immer: aktuelle
+  [start.bat](https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.bat)
+  bzw. [start.sh](https://github.com/CrazyJimPro/reality-tv-programm/raw/main/start.sh)
+  herunterladen, den installierten Ordner (`%USERPROFILE%\reality-tv-programm`
+  bzw. `~/reality-tv-programm`) löschen und die Datei erneut ausführen — die
+  persönliche Sendungsliste geht dabei allerdings mit verloren
+  (`config/reality_shows.json` vorher sichern).
