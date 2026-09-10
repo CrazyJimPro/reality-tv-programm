@@ -48,6 +48,9 @@
                   <span class="uhrzeit">{{ e.uhrzeit }}</span>
                   <span class="sender sender-{{ e.sender|lower|replace('.', '') }}">{{ e.sender }}</span>
                   <span class="titel">{{ e.titel }}</span>
+                  {% if e.staffel_folge %}
+                    <span class="staffel-folge">{{ e.staffel_folge }}</span>
+                  {% endif %}
                   {% if e.konfidenz == 'mittel' %}
                     <span class="konfidenz" title="Nur von einer Quelle bestätigt">nur 1 Quelle</span>
                   {% endif %}

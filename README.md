@@ -56,14 +56,16 @@ und überspringen den Download.)*
 
 **Am einfachsten über die Web-App:** oben auf der Übersicht auf
 "Sendungen verwalten" klicken (oder direkt http://127.0.0.1:5000/einstellungen
-öffnen). Dort gibt es eine Liste bekannter Reality-Formate zum An-/Abhaken
-sowie ein Feld, um eigene, nicht gelistete Sendungen mit Namen (und optional
-alternativen Schreibweisen, mit Komma getrennt) hinzuzufügen. "Speichern"
-schreibt die Auswahl direkt in `config/reality_shows.json` **und stößt sofort
-einen neuen Datenabruf an** (dauert 1-2 Minuten, der Knopf zeigt solange
-"Wird gespeichert und aktualisiert..." an) — die Übersicht zeigt danach
-direkt den neuen Stand, ohne auf den nächsten automatischen Mo/Do-Lauf warten
-zu müssen.
+öffnen). Dort gibt es eine Liste bekannter Reality-Formate zum An-/Abhaken.
+Eigene, nicht gelistete Sendungen: Namen (und optional alternative
+Schreibweisen, mit Komma getrennt) eintragen und auf **"Hinzufügen"**
+klicken — erscheint sofort angehakt in der Liste. Das lässt sich beliebig
+oft wiederholen, um mehrere eigene Sendungen auf einmal zu ergänzen. Erst
+**"Speichern"** übernimmt alles endgültig: schreibt die komplette Auswahl in
+`config/reality_shows.json` **und stößt sofort einen neuen Datenabruf an**
+(dauert 1-2 Minuten, der Knopf zeigt solange "Wird gespeichert und
+aktualisiert..." an) — die Übersicht zeigt danach direkt den neuen Stand,
+ohne auf den nächsten automatischen Mo/Do-Lauf warten zu müssen.
 
 <details>
 <summary>Alternative: die Datei config/reality_shows.json direkt bearbeiten</summary>
@@ -118,8 +120,12 @@ nächsten Lauf einfach nicht mehr neu erkannt/aktualisiert.
 - `scraper/filter.py` — Abgleich gegen `config/reality_shows.json`
 - `scraper/storage.py` — SQLite (`data/programm.db`)
 - `webapp/` — Flask-App: `/` zeigt die Programmübersicht (liest nur aus der
-  DB), `/einstellungen` verwaltet `config/reality_shows.json` (Vorschläge
-  aus `webapp/vorschlaege.py` an-/abwählen, eigene Sendungen hinzufügen),
+  DB; extrahiert per Regex "Staffel X"/"Folge Y" aus dem Beschreibungstext,
+  falls vorhanden, und zeigt es als kleines Badge neben dem Titel — keine
+  zusätzliche Scraping-Quelle, nur vorhandene Daten sichtbarer gemacht),
+  `/einstellungen` verwaltet `config/reality_shows.json` (Vorschläge aus
+  `webapp/vorschlaege.py` an-/abwählen, eigene Sendungen per "Hinzufügen"
+  beliebig oft ergänzen, dann einmal "Speichern"),
   `/aktualisieren` (POST) stößt `scraper/run.py` sofort als Subprozess an
   (Knopf "Jetzt aktualisieren" auf der Startseite; wird beim Speichern in
   `/einstellungen` automatisch mit ausgelöst)

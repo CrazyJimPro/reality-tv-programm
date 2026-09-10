@@ -9,7 +9,7 @@
 <body>
   <header>
     <h1>Sendungen verwalten</h1>
-    <p class="subtitle">Vorschläge an-/abwählen oder eigene Sendungen hinzufügen. Beim Speichern wird sofort neu gescraped, damit die Übersicht direkt aktuell ist.</p>
+    <p class="subtitle">Vorschläge an-/abwählen, eigene Sendungen mit "Hinzufügen" ergänzen (beliebig oft wiederholbar) und erst zum Schluss einmal "Speichern" — das stößt dann sofort einen neuen Datenabruf an.</p>
     <nav class="nav-back"><a href="{{ url_for('index') }}">&larr; zurück zur Übersicht</a></nav>
   </header>
 
@@ -17,11 +17,12 @@
     <p class="gespeichert-hinweis">Gespeichert und aktualisiert — die Übersicht zeigt jetzt den neuen Stand.</p>
   {% endif %}
 
-  <form method="post" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Wird gespeichert und aktualisiert ... (1-2 Minuten)';">
-    <section class="show-liste">
+  <form method="post" id="einstellungen-form" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').textContent='Wird gespeichert und aktualisiert ... (1-2 Minuten)';">
+    <section class="show-liste" id="show-liste">
       {% for show in shows %}
         <label class="show-checkbox">
           <input type="checkbox" name="shows" value="{{ show.name }}" {% if show.name in aktive_namen %}checked{% endif %}>
+          <input type="hidden" name="aliases__{{ show.name }}" value="{{ show.aliases|join(',') }}">
           {{ show.name }}
           {% if show.aliases %}<span class="show-aliases">({{ show.aliases|join(', ') }})</span>{% endif %}
         </label>
@@ -30,14 +31,72 @@
 
     <section class="neue-show">
       <h2>Eigene Sendung hinzufügen</h2>
-      <p class="hinweis">Nicht in der Liste? Hier ergänzen — wird beim Speichern automatisch mit ausgewählt.</p>
+      <p class="hinweis">Name eingeben, auf "Hinzufügen" klicken — erscheint sofort oben in der Liste (angehakt). Beliebig oft wiederholbar, bevor du am Ende einmal speicherst.</p>
       <div class="neue-show-felder">
-        <input type="text" name="neuer_name" placeholder="Name der Sendung">
-        <input type="text" name="neue_aliases" placeholder="Alternative Schreibweisen, mit Komma getrennt (optional)">
+        <input type="text" id="neuer-name" placeholder="Name der Sendung">
+        <input type="text" id="neue-aliases" placeholder="Alternative Schreibweisen, mit Komma getrennt (optional)">
+        <button type="button" id="hinzufuegen-button" class="hinzufuegen-button">Hinzufügen</button>
       </div>
     </section>
 
     <button type="submit" class="speichern-button">Speichern</button>
   </form>
+
+  <script>
+    document.getElementById('hinzufuegen-button').addEventListener('click', function () {
+      var nameInput = document.getElementById('neuer-name');
+      var aliasesInput = document.getElementById('neue-aliases');
+      var name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+      var aliases = aliasesInput.value.trim();
+
+      var liste = document.getElementById('show-liste');
+      var checkboxen = Array.prototype.slice.call(liste.querySelectorAll('input[name="shows"]'));
+      var treffer = checkboxen.find(function (cb) { return cb.value.toLowerCase() === name.toLowerCase(); });
+
+      if (treffer) {
+        treffer.checked = true;
+      } else {
+        var label = document.createElement('label');
+        label.className = 'show-checkbox';
+
+        var checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.name = 'shows';
+        checkbox.value = name;
+        checkbox.checked = true;
+
+        var hiddenAliases = document.createElement('input');
+        hiddenAliases.type = 'hidden';
+        hiddenAliases.name = 'aliases__' + name;
+        hiddenAliases.value = aliases;
+
+        label.appendChild(checkbox);
+        label.appendChild(hiddenAliases);
+        label.appendChild(document.createTextNode(' ' + name + ' '));
+
+        if (aliases) {
+          var span = document.createElement('span');
+          span.className = 'show-aliases';
+          span.textContent = '(' + aliases + ')';
+          label.appendChild(span);
+        }
+
+        liste.appendChild(label);
+
+        var labels = Array.prototype.slice.call(liste.querySelectorAll('.show-checkbox'));
+        labels.sort(function (a, b) {
+          var an = a.querySelector('input[type="checkbox"]').value;
+          var bn = b.querySelector('input[type="checkbox"]').value;
+          return an.localeCompare(bn, 'de', { sensitivity: 'base' });
+        });
+        labels.forEach(function (l) { liste.appendChild(l); });
+      }
+
+      nameInput.value = '';
+      aliasesInput.value = '';
+      nameInput.focus();
+    });
+  </script>
 </body>
 </html>
