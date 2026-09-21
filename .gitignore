@@ -13,3 +13,7 @@ config/reality_shows.json
 # Eigenes Projekt, liegt nur zufaellig in diesem Ordner - hat sein eigenes
 # Repo (CrazyJimPro/abo-tracker) und gehoert nicht in dieses hier.
 abo-tracker/
+diktiertool/
+
+# Claudes Gedaechtnis - eigenes privates Repo (CrazyJimPro/claude-memory).
+claude-memory/
