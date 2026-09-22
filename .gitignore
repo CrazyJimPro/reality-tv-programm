@@ -14,6 +14,7 @@ config/reality_shows.json
 # Repo (CrazyJimPro/abo-tracker) und gehoert nicht in dieses hier.
 abo-tracker/
 diktiertool/
+streaming-info/
 
 # Claudes Gedaechtnis - eigenes privates Repo (CrazyJimPro/claude-memory).
 claude-memory/
