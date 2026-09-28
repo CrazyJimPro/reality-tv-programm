@@ -2,3 +2,11 @@
 *.py text eol=lf
 *.bat text eol=crlf
 *.vbs text eol=crlf
+
+# VERSION wird von start.bat/start.sh eingelesen und mit der Fassung auf
+# GitHub verglichen - deshalb hier ein festes, plattformunabhaengiges
+# Zeilenende. Sonst haengt der Vergleich vom core.autocrlf des jeweiligen
+# Nutzers ab: bei einem Klon mit autocrlf=true kaeme die Zeile als "1.5.0\r"
+# an, und "for /f" in start.bat reicht das \r an die Zahlenumrechnung weiter,
+# die daran scheitert - das Selbstupdate liefe dann stillschweigend leer.
+VERSION text eol=lf
