@@ -18,3 +18,7 @@ streaming-info/
 
 # Claudes Gedaechtnis - eigenes privates Repo (CrazyJimPro/claude-memory).
 claude-memory/
+
+# Sicherheitskopie des Standes vor dem Einspielen einer Sicherung -
+# entsteht beim Nutzer, gehoert nicht ins Repo.
+config/vor-wiederherstellung-*.json

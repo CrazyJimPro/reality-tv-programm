@@ -21,6 +21,7 @@ keine geplante Aufgabe, kein Cronjob.
 | es täglich benutzen | [Starten und beenden](#starten-und-beenden) |
 | festlegen, welche Sendungen angezeigt werden | [Sendungen verwalten](#sendungen-verwalten) |
 | meine Sendungsliste sichern | [Sendungsliste sichern](#sendungsliste-sichern) |
+| meine Liste auf einen anderen Rechner holen | [Sicherung einspielen](#sicherung-einspielen) |
 | ein Problem lösen | [Wenn etwas nicht klappt](#wenn-etwas-nicht-klappt) |
 | wissen, wie es funktioniert | [Technisches](#technisches) |
 
@@ -208,25 +209,76 @@ nächsten Start der App oder sofort per **„Jetzt aktualisieren"**.
 
 </details>
 
-## Sendungsliste sichern
+---
+
+# Sendungsliste sichern
 
 Deine Sendungsauswahl ist das Einzige am ganzen Tool, was Handarbeit ist —
-alles andere holt sich das Programm selbst wieder. Sie steht in **einer
-Datei**:
+alles andere holt sich das Programm selbst wieder. Die Sendetermine sind
+deshalb **nicht** Teil der Sicherung; die holt der nächste Datenabruf ohnehin
+neu.
 
-| System | Datei |
-|---|---|
-| Windows | `%USERPROFILE%\reality-tv-programm\config\reality_shows.json` |
-| Linux | `~/reality-tv-programm/config/reality_shows.json` |
+## So geht's
 
-Zum Sichern einfach **diese Datei kopieren** — auf einen USB-Stick, in eine
-Cloud, wohin du magst. Zum Zurückholen legst du sie an dieselbe Stelle zurück
-und startest die App neu (oder drückst „Jetzt aktualisieren").
+1. Oben auf der Übersicht auf **„Sendungen verwalten →"**.
+2. Falls du gerade etwas geändert hast: erst auf **„Speichern"**. Gesichert
+   wird immer der *gespeicherte* Stand.
+3. Ganz nach unten scrollen zum Abschnitt **„Sicherung"**.
+4. Auf **„Sicherung erstellen"** klicken.
 
-Für ein Update brauchst du **keine** Sicherung: Die Datei ist bewusst kein
-Teil des heruntergeladenen Programmcodes, eine Auffrischung kann sie
-strukturell nicht überschreiben. Vor dem **Löschen des Projektordners**
-solltest du sie aber wegkopieren — dann ist sie weg.
+Der Browser lädt eine Datei namens `reality-tv-programm-2026-09-28.json`
+herunter — normalerweise in deinen Ordner *Downloads*. Das ist die komplette
+Sicherung, mehr braucht es nicht. Sie enthält keine Zugangsdaten und lässt
+sich gefahrlos weitergeben.
+
+**Wann sichern?** Immer dann, wenn du deine Sendungsliste spürbar geändert
+hast. Für ein Update brauchst du **keine** Sicherung: Die Liste ist bewusst
+kein Teil des heruntergeladenen Programmcodes, eine Auffrischung kann sie
+strukturell nicht überschreiben. Vor dem **Löschen des Projektordners** ist
+eine Sicherung aber Pflicht — sonst ist die Liste weg.
+
+# Sicherung einspielen
+
+Damit holst du deine Sendungsliste zurück — auf denselben Rechner nach einem
+Missgeschick oder auf einen neuen.
+
+1. Oben auf der Übersicht auf **„Sendungen verwalten →"**.
+2. Ganz nach unten zum Abschnitt **„Sicherung einspielen"**.
+3. Auf **„Datei auswählen"** klicken und deine
+   `reality-tv-programm-….json` heraussuchen. Sie darf überall liegen:
+   *Downloads*, USB-Stick, Netzlaufwerk — es öffnet sich der normale
+   Dateidialog deines Systems.
+4. Auf **„Sicherung einspielen"** klicken und die Rückfrage bestätigen.
+
+Oben erscheint eine Meldung, was übernommen wurde, und die Programmdaten
+werden automatisch neu geholt (1–2 Minuten), damit die Übersicht zur
+eingespielten Liste passt.
+
+## Das Sicherheitsnetz
+
+Bevor etwas ersetzt wird, legt das Tool deine **bisherige** Liste automatisch
+als `config/vor-wiederherstellung-<Zeit>.json` ab — in demselben Format. Hast
+du also die falsche Datei erwischt, kannst du diese Kopie genauso wieder
+einspielen und bist zurück, wo du warst. Die letzten zehn dieser Kopien
+bleiben liegen.
+
+Eine Datei, die gar keine Reality-TV-Sicherung ist oder aus einer **neueren**
+Programmversion stammt, wird abgelehnt — deine Liste bleibt dann unberührt.
+Das gilt auch für eine Sicherung des Schwesterprojekts Streaming-Info: Die
+beiden Formate werden auseinandergehalten.
+
+## Umzug auf einen neuen Rechner
+
+1. Auf dem alten Rechner eine Sicherung erstellen.
+2. Die Datei auf einen USB-Stick kopieren (oder ins Netzlaufwerk, per Mail an
+   dich selbst, wie du magst).
+3. Auf dem neuen Rechner [installieren](#installieren).
+4. Die Startseite weist dort von sich aus darauf hin, dass sich eine Sicherung
+   einspielen lässt — dem Link folgen und die Datei einspielen.
+
+Die Datei liegt übrigens weiterhin auch direkt im Projektordner unter
+`config/reality_shows.json`; wer möchte, kann sie genauso gut von Hand
+kopieren.
 
 ---
 
@@ -316,6 +368,7 @@ Alles unterhalb von `%USERPROFILE%\reality-tv-programm` bzw.
 | Pfad | Inhalt |
 |---|---|
 | `config/reality_shows.json` | deine persönliche Sendungsliste (bleibt bei Updates erhalten) |
+| `config/vor-wiederherstellung-*.json` | der Stand vor dem letzten Einspielen einer Sicherung (die letzten zehn) |
 | `data/programm.db` | die geholten Sendetermine |
 | `logs/start.log` | Meldungen des Startskripts |
 | `logs/webapp.log` | Meldungen der Web-App — **hier stehen Abstürze** |

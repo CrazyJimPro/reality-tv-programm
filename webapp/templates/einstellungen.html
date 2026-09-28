@@ -28,6 +28,14 @@
     <p class="gespeichert-hinweis">Gespeichert. Die Programmdaten werden gerade im Hintergrund neu geholt (1-2 Minuten) — danach zeigt die Übersicht den neuen Stand.</p>
   {% endif %}
 
+  {% if eingespielt %}
+    <p class="gespeichert-hinweis">Sicherung eingespielt: {{ eingespielt }} Die Programmdaten werden gerade neu geholt (1-2 Minuten).</p>
+  {% endif %}
+
+  {% if fehler %}
+    <p class="fehler-hinweis">{{ fehler }}</p>
+  {% endif %}
+
   <form method="post" id="einstellungen-form" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').textContent='Wird gespeichert ...';">
     <section class="show-liste" id="show-liste">
       {% for show in shows %}
@@ -52,6 +60,36 @@
 
     <button type="submit" class="speichern-button">Speichern</button>
   </form>
+
+  <!-- Bewusst ausserhalb des Formulars oben: ein Knopf darin wuerde beim
+       Anklicken die Sendungsauswahl abschicken. -->
+  <section class="neue-show">
+    <h2>Sicherung</h2>
+    <p class="hinweis">
+      Sichert deine Sendungsliste — das Einzige am Tool, was Handarbeit ist.
+      Die Sendetermine selbst sind nicht dabei, die holt der nächste Datenabruf ohnehin neu.
+      Gesichert wird der <strong>gespeicherte</strong> Stand: falls oben noch etwas offen ist, erst „Speichern“.
+    </p>
+    <a class="hinzufuegen-button" href="{{ url_for('sicherung_herunterladen') }}">Sicherung erstellen</a>
+  </section>
+
+  <section class="neue-show" id="sicherung-einspielen">
+    <h2>Sicherung einspielen</h2>
+    <p class="hinweis">
+      Ersetzt die aktuelle Sendungsliste durch den Stand aus einer Sicherungsdatei.
+      Die Datei darf überall liegen — Downloads, USB-Stick, Netzlaufwerk.
+      Der bisherige Stand wird vorher automatisch als
+      <code>vor-wiederherstellung-&lt;Zeit&gt;.json</code> im Ordner <code>config</code> abgelegt
+      und lässt sich genauso wieder einspielen.
+    </p>
+    <form method="post" action="{{ url_for('sicherung_einspielen') }}" enctype="multipart/form-data"
+          onsubmit="return confirm('Die aktuelle Sendungsliste wird durch die Sicherung ersetzt. Fortfahren?');">
+      <div class="neue-show-felder">
+        <input type="file" name="datei" accept=".json,application/json" required>
+        <button type="submit" class="hinzufuegen-button">Sicherung einspielen</button>
+      </div>
+    </form>
+  </section>
 
   <script>
     document.getElementById('hinzufuegen-button').addEventListener('click', function () {

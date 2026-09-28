@@ -12,6 +12,7 @@ inzwischen wieder entfernt.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -31,10 +32,21 @@ if str(PROJEKT_ROOT) not in sys.path:
 from flask import Flask, jsonify, redirect, render_template, request, url_for  # noqa: E402
 
 from scraper.filter import CONFIG_PFAD, lade_shows_config, speichere_shows_config  # noqa: E402
+from scraper.sicherung import (  # noqa: E402
+    SicherungsFehler,
+    erstelle_sicherung,
+    sicherungs_dateiname,
+    spiele_sicherung_ein,
+)
 from scraper.storage import DB_PFAD, hole_programme, hole_quellen_status, init_db  # noqa: E402
 from vorschlaege import VORSCHLAEGE  # noqa: E402
 
 app = Flask(__name__)
+
+# Eine Sicherung ist wenige Kilobyte gross. Das Limit faengt nur den Fall ab,
+# dass versehentlich etwas ganz anderes hochgeladen wird - ohne es wuerde
+# Flask die Datei erst komplett annehmen und dann verwerfen.
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 VORSCHAU_TAGE = 14
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
@@ -278,6 +290,16 @@ def index():
 
     status = _status_aufbereiten(hole_quellen_status(db_pfad=DB_PFAD))
 
+    # Einmaliger Wegweiser nach einer frischen Installation. Es gibt kein
+    # Installationsprogramm, das beim Aufsetzen nach einer vorhandenen
+    # Sicherung fragen koennte, und der uebliche Start ueber die
+    # Desktop-Verknuepfung zeigt gar kein Fenster - also fragt die App selbst,
+    # sichtbar auf der Startseite.
+    # Der Merker steht in der Sendungsliste selbst, nicht im Arbeitsspeicher:
+    # sonst waere der Hinweis nach dem ersten Neustart weg, obwohl noch nichts
+    # eingerichtet ist.
+    einrichtung_offen = not lade_shows_config(CONFIG_PFAD).get("einrichtung_erledigt")
+
     return render_template(
         "index.html",
         naechste_woche=naechste_woche,
@@ -286,6 +308,7 @@ def index():
         heute=heute,
         anzahl_gesamt=len(rows),
         scrape=_scrape_status,
+        einrichtung_offen=einrichtung_offen,
     )
 
 
@@ -320,6 +343,76 @@ def beenden():
     return render_template("beendet.html")
 
 
+@app.route("/sicherung")
+def sicherung_herunterladen():
+    """Laedt die persoenliche Sendungsliste als JSON-Datei herunter.
+
+    Bewusst ein Download statt einer Datei irgendwo im Projektordner: so
+    landet die Sicherung dort, wo der Browser hinspeichert, und laesst sich
+    von dort auf einen USB-Stick oder einen anderen Rechner mitnehmen.
+    """
+    inhalt = json.dumps(erstelle_sicherung(_version()), ensure_ascii=False, indent=2) + "\n"
+    return app.response_class(
+        inhalt,
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{sicherungs_dateiname()}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.route("/sicherung-einspielen", methods=["POST"])
+def sicherung_einspielen():
+    """Spielt eine hochgeladene Sicherungsdatei ein.
+
+    Der Weg ueber den Datei-Dialog des Browsers ist Absicht: so laesst sich
+    eine Sicherung von ueberall holen - Downloads, USB-Stick, Netzlaufwerk -,
+    ohne dass das Programm Suchpfade fest verdrahtet.
+    """
+    datei = request.files.get("datei")
+    if datei is None or not datei.filename:
+        return redirect(url_for("einstellungen", fehler="Keine Datei ausgewählt."))
+
+    try:
+        bericht = spiele_sicherung_ein(datei.read(), version=_version())
+    except SicherungsFehler as fehler:
+        return redirect(url_for("einstellungen", fehler=str(fehler)))
+    except OSError as fehler:
+        logging.getLogger("webapp").exception("Sicherung konnte nicht eingespielt werden")
+        return redirect(url_for("einstellungen", fehler=f"Die Sendungsliste ließ sich nicht schreiben: {fehler}"))
+
+    meldung = f"{bericht['sendungen']} Sendungen übernommen"
+    if bericht["erstellt_am"]:
+        meldung += f" (Sicherung vom {bericht['erstellt_am'][:10]})"
+    if bericht["notizen"]:
+        meldung += " – " + ", ".join(bericht["notizen"])
+    if bericht["sicherheitskopie"]:
+        meldung += f". Der bisherige Stand liegt als {bericht['sicherheitskopie']} im Ordner config."
+
+    logging.getLogger("webapp").info("Sicherung eingespielt: %s", meldung)
+    # Wie beim Speichern der Auswahl: direkt neu scrapen, damit die Uebersicht
+    # zur eingespielten Liste passt.
+    _scrape_im_hintergrund_starten()
+    return redirect(url_for("einstellungen", eingespielt=meldung))
+
+
+@app.route("/einrichtung-erledigt", methods=["POST"])
+def einrichtung_erledigt():
+    """Blendet den Wegweiser fuer frische Installationen dauerhaft aus."""
+    daten = lade_shows_config(CONFIG_PFAD)
+    daten["einrichtung_erledigt"] = True
+    speichere_shows_config(daten, CONFIG_PFAD)
+    return redirect(url_for("index"))
+
+
+@app.errorhandler(413)
+def _datei_zu_gross(_fehler):
+    """Ohne diesen Handler bekaeme der Nutzer Flasks nackte Fehlerseite zu
+    sehen und muesste selbst zurueckfinden."""
+    return redirect(url_for("einstellungen", fehler="Die Datei ist zu groß für eine Sicherung (über 5 MB)."))
+
+
 @app.route("/einstellungen", methods=["GET", "POST"])
 def einstellungen():
     daten = lade_shows_config(CONFIG_PFAD)
@@ -342,6 +435,9 @@ def einstellungen():
 
         neue_shows.sort(key=lambda s: s["name"].lower())
         daten["shows"] = neue_shows
+        # Wer hier speichert, hat sich eingerichtet - der Wegweiser auf der
+        # Startseite hat sich damit erledigt.
+        daten["einrichtung_erledigt"] = True
         speichere_shows_config(daten, CONFIG_PFAD)
         # Direkt neu scrapen, damit die geaenderte Auswahl in der Uebersicht
         # auftaucht - im Hintergrund, die Seite antwortet sofort.
@@ -360,6 +456,8 @@ def einstellungen():
         shows=anzeige_liste,
         aktive_namen=aktive_namen,
         gespeichert=request.args.get("gespeichert") == "1",
+        eingespielt=request.args.get("eingespielt"),
+        fehler=request.args.get("fehler"),
     )
 
 

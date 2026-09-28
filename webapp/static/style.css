@@ -423,3 +423,17 @@ footer code {
 .speichern-button:hover {
   opacity: 0.9;
 }
+
+/* Datei-Auswahl beim Einspielen einer Sicherung. */
+input[type="file"] {
+  display: block;
+  margin-bottom: 0.8rem;
+  color: inherit;
+  max-width: 30rem;
+}
+
+/* Knopf-Optik auch fuer den Download-Link "Sicherung erstellen". */
+a.hinzufuegen-button {
+  display: inline-block;
+  text-decoration: none;
+}
