@@ -10,15 +10,6 @@ __pycache__/
 # selbst heisst config/reality_shows.default.json und bleibt versioniert.
 config/reality_shows.json
 
-# Eigenes Projekt, liegt nur zufaellig in diesem Ordner - hat sein eigenes
-# Repo (CrazyJimPro/abo-tracker) und gehoert nicht in dieses hier.
-abo-tracker/
-diktiertool/
-streaming-info/
-
-# Claudes Gedaechtnis - eigenes privates Repo (CrazyJimPro/claude-memory).
-claude-memory/
-
 # Sicherheitskopie des Standes vor dem Einspielen einer Sicherung -
 # entsteht beim Nutzer, gehoert nicht ins Repo.
 config/vor-wiederherstellung-*.json
