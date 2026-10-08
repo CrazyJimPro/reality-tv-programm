@@ -17,7 +17,7 @@
 <body>
   <header>
     <h1>Reality-TV Programmübersicht</h1>
-    <p class="subtitle">RTL · VOX · Sat.1 · ProSieben · RTL2 · Kabel Eins — Stand: {{ heute.strftime('%d.%m.%Y') }} · {{ anzahl_gesamt }} Sendungen gefunden <span class="version" title="Installierte Version">v{{ version }}</span></p>
+    <p class="subtitle">RTL · VOX · Sat.1 · ProSieben · RTL2 · Kabel Eins · RTL+ — Stand: {{ heute.strftime('%d.%m.%Y') }} · {{ anzahl_gesamt }} Sendungen gefunden <span class="version" title="Installierte Version">v{{ version }}</span></p>
     <nav class="nav-back">
       <a href="{{ url_for('einstellungen') }}" class="verwalten-button">Sendungen verwalten &rarr;</a>
       <form method="post" action="{{ url_for('aktualisieren') }}" class="aktualisieren-form">
@@ -83,12 +83,12 @@
               {% for e in tag.eintraege %}
                 <li class="sendung">
                   <span class="uhrzeit">{{ e.uhrzeit }}</span>
-                  <span class="sender sender-{{ e.sender|lower|replace('.', '')|replace(' ', '') }}">{{ e.sender }}</span>
+                  <span class="sender sender-{{ e.sender|lower|replace('.', '')|replace(' ', '')|replace('+', 'plus') }}">{{ e.sender }}</span>
                   <span class="titel">{{ e.titel }}</span>
                   {% if e.staffel_folge %}
                     <span class="staffel-folge">{{ e.staffel_folge }}</span>
                   {% endif %}
-                  {% if e.konfidenz == 'mittel' %}
+                  {% if e.konfidenz == 'mittel' and e.sender != 'RTL+' %}
                     <span class="konfidenz" title="Nur von einer Quelle bestätigt">nur 1 Quelle</span>
                   {% endif %}
                   {% if e.beschreibung %}
@@ -110,7 +110,8 @@
 
   <footer>
     <p>Läuft lokal auf deinem Rechner. Die Daten werden bei jedem Start geholt; mit <strong>Beenden</strong> ist alles wieder aus.
-      Liste der erkannten Formate: <code>config/reality_shows.json</code>.</p>
+      Liste der erkannten Formate: <code>config/reality_shows.json</code>.
+      Termine mit <strong>RTL+</strong> stammen von plus.rtl.de &ndash; nur das, was die Seite selbst als Starttermin nennt, nichts Hochgerechnetes.</p>
   </footer>
 
   {% if scrape.laeuft %}

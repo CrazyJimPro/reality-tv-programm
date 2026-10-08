@@ -1,6 +1,6 @@
 # Reality-TV Programmübersicht
 
-**RTL · VOX · Sat.1 · ProSieben · RTL2 · Kabel Eins**
+**RTL · VOX · Sat.1 · ProSieben · RTL2 · Kabel Eins · RTL+ (Streaming)**
 
 Ein privates, lokales Tool. Es holt die Programmdaten der sechs Sender, sucht
 darin deine Reality-TV-Formate heraus und zeigt sie in einer kleinen Web-App
@@ -174,6 +174,13 @@ Datenabruf aus statt einen pro Sendung.
 - Steht eine Sendung trotz Häkchen nicht in der Übersicht, läuft sie in den
   erfassten zwei Wochen schlicht nicht — oder sie steht im Programm unter
   einer anderen Schreibweise. Dann hilft ein Alias (siehe oben).
+- **Sendungen, die nur im Streaming starten** (z. B. Temptation Island VIP oder
+  CoupleChallenge auf RTL+) stehen in keinem Fernsehprogramm. Sie erscheinen
+  mit dem Sender **RTL+**, sobald sie in deiner Liste stehen und die
+  RTL+-Seite einen Starttermin nennt. Dabei wird nichts hochgerechnet: Nennt
+  die Seite keinen Termin, erscheint auch nichts. Steht keine Uhrzeit dabei,
+  zeigt die Übersicht 00:00 und sagt in der Beschreibung ausdrücklich, dass das
+  nur ein Platzhalter ist.
 
 <details>
 <summary>Alternative: die Datei <code>config/reality_shows.json</code> direkt bearbeiten</summary>
@@ -284,6 +291,18 @@ kopieren.
 
 # Wenn etwas nicht klappt
 
+## Eine Streaming-Sendung fehlt
+
+- Steht sie in der Sendungsliste? Der Name muss so geschrieben sein, wie RTL+ ihn
+  führt, oder als Alias eingetragen sein (z. B. „Couple Challenge" und
+  „CoupleChallenge").
+- Nennt die Programmseite auf plus.rtl.de schon einen Starttermin? Davor gibt es
+  hier nichts zu zeigen. Die Übersicht erfindet keine Termine.
+- Liegt der Termin mehr als zwei Wochen voraus, erscheint er erst, wenn er in den
+  Anzeigezeitraum rückt.
+- In `logs/scraper.log` steht unter `plus.rtl.de`, welche Seiten gefunden wurden
+  und wie viele Termine sie ergaben.
+
 ## Die Übersicht bleibt leer
 
 - **Läuft gerade noch der Datenabruf?** Er dauert 1–2 Minuten; die Seite
@@ -370,6 +389,7 @@ Alles unterhalb von `%USERPROFILE%\reality-tv-programm` bzw.
 | `config/reality_shows.json` | deine persönliche Sendungsliste (bleibt bei Updates erhalten) |
 | `config/vor-wiederherstellung-*.json` | der Stand vor dem letzten Einspielen einer Sicherung (die letzten zehn) |
 | `data/programm.db` | die geholten Sendetermine |
+| `data/rtlplus_katalog.json` | Zwischenspeicher der RTL+-Suche (darf gelöscht werden) |
 | `logs/start.log` | Meldungen des Startskripts |
 | `logs/webapp.log` | Meldungen der Web-App — **hier stehen Abstürze** |
 | `logs/scraper.log` | Protokoll der Datenabrufe |
@@ -410,7 +430,14 @@ deshalb gar nicht überschreiben.
   zu 14 Tage ab. Sat.1/ProSieben laufen inzwischen über Joyn, das selbst keine
   brauchbare mehrtägige Programmübersicht mehr bietet; RTL2/Kabel Eins haben
   gar keine eigene Quelle — für diese vier Sender ist das hier die einzige
-- `scraper/merge.py` — führt Duplikate aus beiden Quellen zusammen
+- `scraper/sources/rtlplus.py` — Streaming-Start auf plus.rtl.de für Sendungen,
+  die in keinem Fernsehprogramm stehen. Sucht die Namen aus deiner Liste in der
+  öffentlichen Sitemap von RTL+ (Zwischenspeicher `data/rtlplus_katalog.json`,
+  höchstens einmal pro Woche neu gelesen), liest je Sendung die Programmseite
+  und übernimmt nur Termine, die dort ausdrücklich stehen: die Folgentabelle
+  (Temptation Island VIP) oder Angaben wie „Staffel 7 ab 12. Oktober". Hörbücher
+  und Podcasts mit gleichem Namen werden ausgesondert
+- `scraper/merge.py` — führt Duplikate aus den Quellen zusammen
 - `scraper/filter.py` — Abgleich gegen `config/reality_shows.json`
 - `scraper/storage.py` — SQLite (`data/programm.db`)
 
@@ -462,7 +489,7 @@ crontab -l | grep -v '# RealityTV_Scraper' | crontab -
 
 ## Wichtige Hinweise
 
-- **Rechtlich:** Automatisiertes Abrufen von rtl.de und tvspielfilm.de kann
+- **Rechtlich:** Automatisiertes Abrufen von rtl.de, tvspielfilm.de und plus.rtl.de kann
   gegen deren Nutzungsbedingungen verstoßen, auch bei rein privatem Gebrauch.
   Das ist ein bewusst eingegangenes Risiko — keine Rechtsberatung. Abgerufen
   wird nur beim Start der App und auf Knopfdruck, das hält die Serverlast

@@ -15,7 +15,7 @@ from pathlib import Path
 from scraper.base import ScraperFehler
 from scraper.filter import filtere_reality_shows
 from scraper.merge import merge
-from scraper.sources import rtl, tvspielfilm
+from scraper.sources import rtl, rtlplus, tvspielfilm
 from scraper.storage import (
     hole_quellen_status,
     init_db,
@@ -30,7 +30,11 @@ LOG_PFAD = PROJEKT_ROOT / "logs" / "scraper.log"
 # Deckt "naechste Woche" + "uebernaechste Woche" ab wie im Plan gefordert.
 VORSCHAU_TAGE = 14
 
-QUELLEN_MODULE = [rtl, tvspielfilm]
+# Die Fernseh-Quellen werden gegen die Sendungsliste gefiltert. rtlplus sucht
+# schon selbst nach den Namen der Liste (und liefert Titel, die der Filter
+# nicht immer wiedererkennt, z.B. "#CoupleChallenge - Das staerkste Team
+# gewinnt" gegen "Couple Challenge") und laeuft deshalb daran vorbei.
+QUELLEN_MODULE = [rtl, tvspielfilm, rtlplus]
 
 
 def _logging_einrichten() -> None:
@@ -49,23 +53,29 @@ def main() -> None:
 
     init_db()
 
-    alle_rohdaten = []
+    tv_rohdaten = []
+    streaming_rohdaten = []
+    ausgefallene_sender = []
     for modul in QUELLEN_MODULE:
         try:
             eintraege = modul.fetch()
         except ScraperFehler as exc:
             logger.error("Quelle %s fehlgeschlagen: %s", modul.QUELLE, exc)
             markiere_quelle_fehler(modul.QUELLE, str(exc))
+            if modul is rtlplus:
+                ausgefallene_sender.append(rtlplus.SENDER)
             continue
         logger.info("Quelle %s lieferte %d Rohdatensaetze", modul.QUELLE, len(eintraege))
         markiere_quelle_erfolg(modul.QUELLE)
-        alle_rohdaten.extend(eintraege)
+        (streaming_rohdaten if modul is rtlplus else tv_rohdaten).extend(eintraege)
 
-    if not alle_rohdaten:
-        logger.critical("Alle Quellen sind fehlgeschlagen - bestehende Daten in der DB bleiben unveraendert.")
+    # Ohne frische Fernsehdaten wird nichts ersetzt - sonst wuerde ein Lauf, bei
+    # dem nur RTL+ antwortet, das gespeicherte Fernsehprogramm wegraeumen.
+    if not tv_rohdaten:
+        logger.critical("Alle Fernseh-Quellen sind fehlgeschlagen - bestehende Daten in der DB bleiben unveraendert.")
         return
 
-    gemergt = merge(alle_rohdaten)
+    gemergt = merge(tv_rohdaten)
     logger.info("%d Ausstrahlungen nach Merge/Dedupe", len(gemergt))
 
     reality = filtere_reality_shows(gemergt)
@@ -73,7 +83,20 @@ def main() -> None:
 
     heute = date.today()
     bis = heute + timedelta(days=VORSCHAU_TAGE - 1)
-    speichere_eintraege(reality, ab_datum=heute, bis_datum=bis, db_pfad=PROJEKT_ROOT / "data" / "programm.db")
+
+    # RTL+-Termine liegen teils Monate voraus (Folgenliste) - gespeichert wird nur
+    # der angezeigte Zeitraum, der Rest kommt beim naechsten Lauf von selbst.
+    streaming = [e for e in merge(streaming_rohdaten) if heute <= e.datum <= bis]
+    logger.info("%d RTL+-Termine im Zeitraum %s bis %s", len(streaming), heute, bis)
+    gesamt = sorted(reality + streaming, key=lambda e: (e.datum, e.uhrzeit, e.sender))
+
+    speichere_eintraege(
+        gesamt,
+        ab_datum=heute,
+        bis_datum=bis,
+        db_pfad=PROJEKT_ROOT / "data" / "programm.db",
+        behalte_sender=tuple(ausgefallene_sender),
+    )
     logger.info("Gespeichert fuer Zeitraum %s bis %s", heute, bis)
 
     status = hole_quellen_status()

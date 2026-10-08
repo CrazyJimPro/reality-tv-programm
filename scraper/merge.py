@@ -10,7 +10,7 @@ from scraper.base import ProgrammEintrag
 
 # Sender-eigene Seite ist naeher an der Quelle -> gewinnt bei Titel/Beschreibung,
 # falls beide Quellen denselben Termin liefern.
-QUELLEN_PRIORITAET = ["rtl.de", "tvspielfilm.de"]
+QUELLEN_PRIORITAET = ["rtl.de", "tvspielfilm.de", "plus.rtl.de"]
 
 # Zwei Eintraege gelten als dieselbe Ausstrahlung, wenn ihre Startzeiten
 # hoechstens so viele Minuten auseinanderliegen UND die Titel-Aehnlichkeit

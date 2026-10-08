@@ -3,7 +3,7 @@
 Das ist nur eine Vorschlagsliste fuer die Checkbox-Auswahl in der Web-App -
 die tatsaechlich aktive Liste steht immer in config/reality_shows.json.
 Ergaenzt keine Formate, die nicht auf RTL/VOX/Sat.1/ProSieben/RTL2/Kabel Eins
-laufen.
+oder im Streaming-Angebot RTL+ (scraper/sources/rtlplus.py) laufen.
 """
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ VORSCHLAEGE: list[dict] = [
     {"name": "Kampf der Realitystars", "aliases": []},
     {"name": "Are You The One", "aliases": ["Are You The One?"]},
     {"name": "Temptation Island", "aliases": ["Temptation Island VIP"]},
+    {"name": "Couple Challenge", "aliases": ["CoupleChallenge", "#CoupleChallenge"]},
     {"name": "Big Brother", "aliases": ["Promi Big Brother"]},
     {"name": "Love Island", "aliases": ["Love Island VIP"]},
     {"name": "Ich bin ein Star - Holt mich hier raus", "aliases": ["Dschungelcamp", "IBES"]},

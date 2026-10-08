@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS programme (
     quellen TEXT NOT NULL,
     konfidenz TEXT NOT NULL,
     aktualisiert_am TEXT NOT NULL,
-    PRIMARY KEY (sender, datum, uhrzeit)
+    PRIMARY KEY (sender, datum, uhrzeit, titel)
 );
 
 CREATE TABLE IF NOT EXISTS quellen_status (
@@ -41,26 +41,53 @@ def _verbindung(db_pfad: Path = DB_PFAD) -> sqlite3.Connection:
     return conn
 
 
+def _schluessel_migrieren(conn: sqlite3.Connection) -> None:
+    """Aeltere Datenbanken kennen den Titel nicht im Primaerschluessel. Mit RTL+
+    (mehrere Sendungen starten dort gleichzeitig um 0 Uhr) wuerde das zu
+    Schluesselkollisionen fuehren. Die Tabelle wird deshalb einmalig mit dem
+    neuen Schluessel neu angelegt; vorhandene Zeilen bleiben erhalten."""
+    spalten = conn.execute("PRAGMA table_info(programme)").fetchall()
+    schluessel = {row["name"] for row in spalten if row["pk"]}
+    if not spalten or "titel" in schluessel:
+        return
+    conn.execute("ALTER TABLE programme RENAME TO programme_alt")
+    conn.executescript(SCHEMA)
+    conn.execute("INSERT OR IGNORE INTO programme SELECT * FROM programme_alt")
+    conn.execute("DROP TABLE programme_alt")
+
+
 def init_db(db_pfad: Path = DB_PFAD) -> None:
     with closing(_verbindung(db_pfad)) as conn, conn:
+        # Bestehende Tabelle zuerst umbauen, sonst legt SCHEMA (IF NOT EXISTS) nichts neu an.
+        _schluessel_migrieren(conn)
         conn.executescript(SCHEMA)
 
 
 def speichere_eintraege(
-    eintraege: list[MergedEintrag], ab_datum: date, bis_datum: date, db_pfad: Path = DB_PFAD
+    eintraege: list[MergedEintrag],
+    ab_datum: date,
+    bis_datum: date,
+    db_pfad: Path = DB_PFAD,
+    behalte_sender: tuple[str, ...] = (),
 ) -> None:
     """Ersetzt alle gespeicherten Sendungen im Zeitraum [ab_datum, bis_datum]
     durch die frisch gemergten Eintraege. Wird nur aufgerufen, wenn der
-    Scrape-Lauf ueberhaupt Daten geliefert hat (siehe run.py)."""
+    Scrape-Lauf ueberhaupt Daten geliefert hat (siehe run.py).
+
+    behalte_sender: Sender, deren bisherige Zeilen NICHT geloescht werden -
+    gebraucht, wenn deren Quelle in diesem Lauf ausgefallen ist (sonst wuerden
+    ihre zuletzt guten Daten mit einem Fehlschlag verschwinden)."""
     jetzt = datetime.now().isoformat(timespec="seconds")
     with closing(_verbindung(db_pfad)) as conn, conn:
-        conn.execute(
-            "DELETE FROM programme WHERE datum >= ? AND datum <= ?",
-            (ab_datum.isoformat(), bis_datum.isoformat()),
-        )
+        loeschen = "DELETE FROM programme WHERE datum >= ? AND datum <= ?"
+        parameter: list = [ab_datum.isoformat(), bis_datum.isoformat()]
+        if behalte_sender:
+            loeschen += f" AND sender NOT IN ({','.join('?' * len(behalte_sender))})"
+            parameter.extend(behalte_sender)
+        conn.execute(loeschen, parameter)
         conn.executemany(
             """
-            INSERT INTO programme (sender, datum, uhrzeit, titel, beschreibung, genre, quellen, konfidenz, aktualisiert_am)
+            INSERT OR REPLACE INTO programme (sender, datum, uhrzeit, titel, beschreibung, genre, quellen, konfidenz, aktualisiert_am)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
