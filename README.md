@@ -126,6 +126,11 @@ z.B. `v1.4.10`; beim Start landet die Nummer auch in `logs/start.log`. Die
 neueste steht unter
 [Releases](https://github.com/CrazyJimPro/reality-tv-programm/releases).
 
+**Zugriff von einem anderen Rechner im Netzwerk:** Läuft die App z.B. in einer
+VM, erreichst du sie auch über `http://<IP-der-VM>:5000` von einem anderen
+Gerät im selben Netzwerk — nicht nur über `localhost` auf der VM selbst. Ohne
+Login-Schutz: nur in einem vertrauenswürdigen (Heim-)Netzwerk nutzen.
+
 ---
 
 # Sendungen verwalten

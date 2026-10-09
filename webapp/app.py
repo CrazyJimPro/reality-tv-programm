@@ -477,4 +477,4 @@ if __name__ == "__main__":
     # start.bat/start.sh tun) einen zweiten Python-Prozess zum Neuladen bei
     # Codeaenderungen - fuer eine fertig installierte lokale App unnoetig
     # und sorgt nur fuer einen verwaisten Zweitprozess.
-    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
