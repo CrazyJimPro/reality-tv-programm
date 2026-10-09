@@ -72,6 +72,53 @@
     {% endfor %}
   </section>
 
+  {% macro entdeckt_liste(eintraege) %}
+    <ul class="entdeckt-liste">
+      {% for g in eintraege %}
+        <li class="entdeckt-eintrag">
+          <div class="entdeckt-info">
+            <span class="titel">{{ g.titel }}</span>
+            <span class="entdeckt-details">
+              {% for s in g.sender %}<span class="sender sender-{{ s|lower|replace('.', '')|replace(' ', '')|replace('+', 'plus') }}">{{ s }}</span> {% endfor %}
+              {{ g.genre }} · {{ g.anzahl }}× in 14 Tagen · nächster Termin: {{ g.naechster|termin }}
+            </span>
+          </div>
+          <form method="post" action="{{ url_for('entdeckung_hinzufuegen') }}">
+            <input type="hidden" name="titel" value="{{ g.titel }}">
+            <button type="submit" class="hinzufuegen-button">Hinzufügen</button>
+          </form>
+          <form method="post" action="{{ url_for('entdeckung_ausblenden') }}">
+            <input type="hidden" name="titel" value="{{ g.titel }}">
+            <button type="submit" class="ausblenden-button" title="Nicht mehr vorschlagen (in „Sendungen verwalten“ rückgängig zu machen)">Ausblenden</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endmacro %}
+
+  {% if hinzugefuegt %}
+    <p class="gespeichert-hinweis">„{{ hinzugefuegt }}“ steht jetzt in deiner Liste{% if hinzugefuegt_termine and hinzugefuegt_termine != '0' %} &ndash; {{ hinzugefuegt_termine }} Termin(e) sind schon in der Übersicht{% endif %}.</p>
+  {% endif %}
+
+  {% if entdeckt_reality or entdeckt_soap %}
+    <section class="entdeckungen" id="entdeckungen">
+      {% if entdeckt_reality %}
+        <details class="entdeckt-kasten">
+          <summary><strong>Neu entdeckt:</strong> {{ entdeckt_reality|length }} Reality-Format{% if entdeckt_reality|length != 1 %}e{% endif %} im Programm, die nicht in deiner Liste stehen</summary>
+          <p class="hinweis">Erkannt am Genre, das tvspielfilm.de vergibt (z.B. „Realitysoap“, „Datingshow“). „Hinzufügen“ nimmt die Sendung sofort in Liste und Übersicht auf, „Ausblenden“ schlägt sie nicht mehr vor.</p>
+          {{ entdeckt_liste(entdeckt_reality) }}
+        </details>
+      {% endif %}
+      {% if entdeckt_soap %}
+        <details class="entdeckt-kasten entdeckt-soap">
+          <summary>Weitere Doku-Soaps: {{ entdeckt_soap|length }} Sendung{% if entdeckt_soap|length != 1 %}en{% endif %}</summary>
+          <p class="hinweis">Genre „…soap“ (z.B. Auswanderer-, Renovier-, Pfandleiher-Soaps) &ndash; ohne fiktionale Serien und ohne gespielte Gerichts- und Ermittler-Formate.</p>
+          {{ entdeckt_liste(entdeckt_soap) }}
+        </details>
+      {% endif %}
+    </section>
+  {% endif %}
+
   {% macro woche(titel, tage) %}
     <section class="woche">
       <h2>{{ titel }}</h2>

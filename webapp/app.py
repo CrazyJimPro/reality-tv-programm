@@ -31,7 +31,8 @@ if str(PROJEKT_ROOT) not in sys.path:
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for  # noqa: E402
 
-from scraper.filter import CONFIG_PFAD, lade_shows_config, speichere_shows_config  # noqa: E402
+from scraper.entdecken import STUFE_REALITY, STUFE_SOAP, fuer_anzeige  # noqa: E402
+from scraper.filter import CONFIG_PFAD, lade_shows_config, passt_zu_namen, speichere_shows_config  # noqa: E402
 from scraper.sicherung import (  # noqa: E402
     SicherungsFehler,
     erstelle_sicherung,
@@ -39,7 +40,14 @@ from scraper.sicherung import (  # noqa: E402
     spiele_sicherung_ein,
 )
 from scraper.sources.tvspielfilm import SENDER_SLUGS  # noqa: E402
-from scraper.storage import DB_PFAD, hole_programme, hole_quellen_status, init_db  # noqa: E402
+from scraper.storage import (  # noqa: E402
+    DB_PFAD,
+    hole_entdeckungen,
+    hole_programme,
+    hole_quellen_status,
+    init_db,
+    uebernehme_entdeckungen,
+)
 from vorschlaege import VORSCHLAEGE  # noqa: E402
 
 app = Flask(__name__)
@@ -51,6 +59,7 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 VORSCHAU_TAGE = 14
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
 # Ab wann gelten die Daten einer Quelle als veraltet (Warnhinweis in der
 # Uebersicht)? Im Normalfall - App starten, Daten werden geholt - wird das
@@ -299,7 +308,14 @@ def index():
     # Der Merker steht in der Sendungsliste selbst, nicht im Arbeitsspeicher:
     # sonst waere der Hinweis nach dem ersten Neustart weg, obwohl noch nichts
     # eingerichtet ist.
-    einrichtung_offen = not lade_shows_config(CONFIG_PFAD).get("einrichtung_erledigt")
+    config = lade_shows_config(CONFIG_PFAD)
+    einrichtung_offen = not config.get("einrichtung_erledigt")
+
+    entdeckt = fuer_anzeige(
+        hole_entdeckungen(heute, uebernaechste_woche_bis, db_pfad=DB_PFAD),
+        show_namen=_show_namen(config),
+        ausgeblendet=config.get("ausgeblendet", []),
+    )
 
     return render_template(
         "index.html",
@@ -311,7 +327,70 @@ def index():
         scrape=_scrape_status,
         einrichtung_offen=einrichtung_offen,
         sender_liste=list(SENDER_SLUGS),
+        entdeckt_reality=entdeckt[STUFE_REALITY],
+        entdeckt_soap=entdeckt[STUFE_SOAP],
+        hinzugefuegt=request.args.get("hinzugefuegt"),
+        hinzugefuegt_termine=request.args.get("termine"),
     )
+
+
+def _show_namen(config: dict) -> list[str]:
+    namen = []
+    for show in config.get("shows", []):
+        namen.append(show["name"])
+        namen.extend(show.get("aliases", []))
+    return namen
+
+
+@app.template_filter("termin")
+def _termin_filter(zeitpunkt: datetime | None) -> str:
+    if zeitpunkt is None:
+        return "heute schon gelaufen"
+    return f"{WOCHENTAGE_KURZ[zeitpunkt.weekday()]} {zeitpunkt:%d.%m.}, {zeitpunkt:%H:%M}"
+
+
+@app.route("/entdeckung/hinzufuegen", methods=["POST"])
+def entdeckung_hinzufuegen():
+    """Nimmt einen Titel aus "Neu entdeckt" in die Sendungsliste auf und
+    kopiert seine schon bekannten Termine direkt in die Uebersicht - ohne
+    neuen Datenabruf, deshalb klappen auch mehrere Klicks hintereinander."""
+    titel = request.form.get("titel", "").strip()
+    if not titel:
+        return redirect(url_for("index"))
+    daten = lade_shows_config(CONFIG_PFAD)
+    shows = daten.setdefault("shows", [])
+    if not any(s["name"].lower() == titel.lower() for s in shows):
+        shows.append({"name": titel, "aliases": []})
+        shows.sort(key=lambda s: s["name"].lower())
+        speichere_shows_config(daten, CONFIG_PFAD)
+
+    heute = date.today()
+    rows = hole_entdeckungen(heute, heute + timedelta(days=VORSCHAU_TAGE - 1), db_pfad=DB_PFAD)
+    passende = [r for r in rows if passt_zu_namen(r["titel"], [titel])]
+    uebernehme_entdeckungen(passende, db_pfad=DB_PFAD)
+    return redirect(url_for("index", hinzugefuegt=titel, termine=len(passende), _anchor="entdeckungen"))
+
+
+@app.route("/entdeckung/ausblenden", methods=["POST"])
+def entdeckung_ausblenden():
+    titel = request.form.get("titel", "").strip()
+    if titel:
+        daten = lade_shows_config(CONFIG_PFAD)
+        ausgeblendet = daten.setdefault("ausgeblendet", [])
+        if titel.lower() not in (t.lower() for t in ausgeblendet):
+            ausgeblendet.append(titel)
+            ausgeblendet.sort(key=str.lower)
+            speichere_shows_config(daten, CONFIG_PFAD)
+    return redirect(url_for("index", _anchor="entdeckungen"))
+
+
+@app.route("/entdeckung/einblenden", methods=["POST"])
+def entdeckung_einblenden():
+    titel = request.form.get("titel", "").strip()
+    daten = lade_shows_config(CONFIG_PFAD)
+    daten["ausgeblendet"] = [t for t in daten.get("ausgeblendet", []) if t.lower() != titel.lower()]
+    speichere_shows_config(daten, CONFIG_PFAD)
+    return redirect(url_for("einstellungen", _anchor="ausgeblendet"))
 
 
 @app.route("/scrape-status")
@@ -460,6 +539,7 @@ def einstellungen():
         gespeichert=request.args.get("gespeichert") == "1",
         eingespielt=request.args.get("eingespielt"),
         fehler=request.args.get("fehler"),
+        ausgeblendet=daten.get("ausgeblendet", []),
     )
 
 

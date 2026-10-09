@@ -21,6 +21,7 @@ keine geplante Aufgabe, kein Cronjob.
 | das Tool zum ersten Mal einrichten | [Installieren](#installieren) |
 | es täglich benutzen | [Starten und beenden](#starten-und-beenden) |
 | festlegen, welche Sendungen angezeigt werden | [Sendungen verwalten](#sendungen-verwalten) |
+| Reality-Formate finden, die ich noch nicht kenne | [Neue Formate entdecken](#neue-formate-entdecken) |
 | meine Sendungsliste sichern | [Sendungsliste sichern](#sendungsliste-sichern) |
 | meine Liste auf einen anderen Rechner holen | [Sicherung einspielen](#sicherung-einspielen) |
 | ein Problem lösen | [Wenn etwas nicht klappt](#wenn-etwas-nicht-klappt) |
@@ -224,6 +225,46 @@ nächsten Start der App oder sofort per **„Jetzt aktualisieren"**.
 
 ---
 
+# Neue Formate entdecken
+
+Die Übersicht zeigt nur, was in deiner Liste steht — von einem neuen Format
+würdest du so nie erfahren. Deshalb sucht jeder Datenabruf zusätzlich im
+gesamten Programm aller 14 Sender nach Sendungen, die **nach ihrem Genre**
+Reality-TV sind, aber noch nicht in deiner Liste stehen.
+
+## So geht's
+
+1. Auf der Übersicht, oberhalb von „Nächste Woche", steht der Kasten
+   **„Neu entdeckt: … Reality-Formate"**. Draufklicken klappt ihn auf.
+2. Zu jedem Titel siehst du Sender, Genre, wie oft er in den zwei Wochen läuft
+   und den nächsten Termin.
+3. **„Hinzufügen"** nimmt die Sendung in deine Liste auf. Ihre Termine stehen
+   **sofort** in der Übersicht — ohne Warten auf einen neuen Datenabruf, du
+   kannst also mehrere hintereinander hinzufügen.
+4. **„Ausblenden"** schlägt einen Titel nicht mehr vor.
+
+Darunter gibt es einen zweiten, zugeklappten Kasten **„Weitere
+Doku-Soaps"** — Auswanderer-, Renovier-, Pfandleiher-Soaps und Ähnliches.
+Der ist bewusst getrennt, weil er deutlich mehr und gemischtere Treffer hat.
+
+## Was du erwarten kannst
+
+- **Woran erkannt wird:** am Genre, das tvspielfilm.de zu jeder Sendung
+  vergibt. Im ersten Kasten landet alles mit „Reality", „Dating" oder
+  „Kuppel" im Genre (z. B. „Realitysoap", „Datingshow"). Im zweiten alles mit
+  „…soap" — ohne fiktionale Serien wie GZSZ und ohne gespielte Gerichts- und
+  Ermittler-Formate (Barbara Salesch, K11), die sonst alles überdecken würden.
+- RTL+-Sendungen tauchen hier nicht auf: RTL+ hat keine Genres, dort wird nur
+  gezielt nach den Namen aus deiner Liste gesucht.
+- **Ausgeblendetes zurückholen:** unter **„Sendungen verwalten"** im
+  Abschnitt **„Ausgeblendete Vorschläge"** → **„Wieder anzeigen"**.
+- Hinzugefügt wird der Titel genau so, wie er im Programm steht (z. B.
+  „Verpfuscht – Ein Fall für die Beauty Docs"). Läuft das Format auch unter
+  anderen Titeln, kannst du in „Sendungen verwalten" zusätzlich eine kürzere
+  Schreibweise als eigene Sendung ergänzen.
+
+---
+
 # Sendungsliste sichern
 
 Deine Sendungsauswahl ist das Einzige am ganzen Tool, was Handarbeit ist —
@@ -241,7 +282,8 @@ neu.
 
 Der Browser lädt eine Datei namens `reality-tv-programm-2026-09-28.json`
 herunter — normalerweise in deinen Ordner *Downloads*. Das ist die komplette
-Sicherung, mehr braucht es nicht. Sie enthält keine Zugangsdaten und lässt
+Sicherung, mehr braucht es nicht. Sie enthält auch die Titel, die du unter
+„Neu entdeckt" ausgeblendet hast. Sie enthält keine Zugangsdaten und lässt
 sich gefahrlos weitergeben.
 
 **Wann sichern?** Immer dann, wenn du deine Sendungsliste spürbar geändert
@@ -472,6 +514,13 @@ Flask, erreichbar unter **Port 5000**:
   und einmal beim Start der App)
 - `/scrape-status` (JSON) — meldet, ob ein Lauf noch läuft; damit lädt sich
   die Übersicht selbst neu, sobald er fertig ist
+- `/entdeckung/hinzufuegen`, `/entdeckung/ausblenden`, `/entdeckung/einblenden`
+  (POST) — Kasten „Neu entdeckt". Die Kandidaten berechnet
+  `scraper/entdecken.py` bei jedem Lauf aus dem ungefilterten Programm und legt
+  sie samt Terminen in der Tabelle `entdeckungen` ab; abgeglichen mit der
+  Sendungsliste wird erst beim Anzeigen. „Hinzufügen" kopiert die Termine von
+  dort direkt in die Übersicht. Ausgeblendete Titel stehen unter
+  `"ausgeblendet"` in `config/reality_shows.json`
 - `/beenden` (POST) — beendet die App vollständig
 
 `start_versteckt.bat` / `start_versteckt.vbs` (nur Windows) sind das Ziel der

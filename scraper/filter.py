@@ -56,6 +56,18 @@ def _passt_zu_liste(titel: str, normalisierte_namen: list[str]) -> bool:
     return False
 
 
+def normalisiert(text: str) -> str:
+    """Vergleichsform eines Titels (Kleinschreibung, ohne Bindestriche/Ausrufezeichen)."""
+    return _normalisiert(text)
+
+
+def passt_zu_namen(titel: str, namen: list[str]) -> bool:
+    """Derselbe Abgleich wie im Scrape-Lauf, fuer einen einzelnen Titel -
+    damit der Kasten "Neu entdeckt" genau das als bekannt ansieht, was der
+    Filter auch in die Uebersicht durchlassen wuerde."""
+    return _passt_zu_liste(titel, [_normalisiert(name) for name in namen])
+
+
 def filtere_reality_shows(
     eintraege: list[MergedEintrag], config_pfad: Path = CONFIG_PFAD
 ) -> list[MergedEintrag]:

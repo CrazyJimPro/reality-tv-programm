@@ -25,6 +25,22 @@ CREATE TABLE IF NOT EXISTS programme (
     PRIMARY KEY (sender, datum, uhrzeit, titel)
 );
 
+-- Kandidaten fuer den Kasten "Neu entdeckt" (scraper/entdecken.py): alle
+-- Fernseh-Ausstrahlungen mit Reality-/Doku-Soap-Genre, unabhaengig von der
+-- Sendungsliste. Wird bei jedem erfolgreichen Lauf komplett ersetzt.
+CREATE TABLE IF NOT EXISTS entdeckungen (
+    sender TEXT NOT NULL,
+    datum TEXT NOT NULL,
+    uhrzeit TEXT NOT NULL,
+    titel TEXT NOT NULL,
+    beschreibung TEXT,
+    genre TEXT,
+    quellen TEXT NOT NULL,
+    konfidenz TEXT NOT NULL,
+    stufe TEXT NOT NULL,
+    PRIMARY KEY (sender, datum, uhrzeit, titel)
+);
+
 CREATE TABLE IF NOT EXISTS quellen_status (
     quelle TEXT PRIMARY KEY,
     letzter_erfolg_am TEXT,
@@ -150,3 +166,57 @@ def hole_programme(ab_datum: date, bis_datum: date, db_pfad: Path = DB_PFAD) -> 
             (ab_datum.isoformat(), bis_datum.isoformat()),
         ).fetchall()
         return [dict(row) for row in rows]
+
+
+def speichere_entdeckungen(kandidaten: list[tuple[MergedEintrag, str]], db_pfad: Path = DB_PFAD) -> None:
+    """Ersetzt alle gespeicherten Kandidaten durch die des aktuellen Laufs."""
+    with closing(_verbindung(db_pfad)) as conn, conn:
+        conn.execute("DELETE FROM entdeckungen")
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO entdeckungen (sender, datum, uhrzeit, titel, beschreibung, genre, quellen, konfidenz, stufe)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    e.sender,
+                    e.datum.isoformat(),
+                    e.uhrzeit.strftime("%H:%M"),
+                    e.titel,
+                    e.beschreibung,
+                    e.genre,
+                    ",".join(e.quellen),
+                    e.konfidenz,
+                    stufe,
+                )
+                for e, stufe in kandidaten
+            ],
+        )
+
+
+def hole_entdeckungen(ab_datum: date, bis_datum: date, db_pfad: Path = DB_PFAD) -> list[dict]:
+    with closing(_verbindung(db_pfad)) as conn:
+        rows = conn.execute(
+            "SELECT * FROM entdeckungen WHERE datum >= ? AND datum <= ? ORDER BY datum, uhrzeit, sender",
+            (ab_datum.isoformat(), bis_datum.isoformat()),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def uebernehme_entdeckungen(rows: list[dict], db_pfad: Path = DB_PFAD) -> None:
+    """Kopiert Kandidaten-Termine in die Uebersicht - damit eine aus "Neu
+    entdeckt" hinzugefuegte Sendung sofort erscheint, ohne 1-2 Minuten auf
+    einen neuen Datenabruf zu warten. Der naechste Lauf ersetzt sie ohnehin
+    durch frische Daten (dann ueber den normalen Filter)."""
+    jetzt = datetime.now().isoformat(timespec="seconds")
+    with closing(_verbindung(db_pfad)) as conn, conn:
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO programme (sender, datum, uhrzeit, titel, beschreibung, genre, quellen, konfidenz, aktualisiert_am)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (r["sender"], r["datum"], r["uhrzeit"], r["titel"], r["beschreibung"], r["genre"], r["quellen"], r["konfidenz"], jetzt)
+                for r in rows
+            ],
+        )

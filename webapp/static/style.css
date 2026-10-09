@@ -446,3 +446,85 @@ a.hinzufuegen-button {
   display: inline-block;
   text-decoration: none;
 }
+
+/* Kasten "Neu entdeckt" (scraper/entdecken.py) */
+.entdeckungen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.entdeckt-kasten {
+  background: var(--card-bg);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+}
+
+.entdeckt-soap {
+  border-color: var(--border);
+}
+
+.entdeckt-kasten summary {
+  cursor: pointer;
+}
+
+.entdeckt-kasten[open] summary {
+  margin-bottom: 0.5rem;
+}
+
+.entdeckt-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.entdeckt-eintrag {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.entdeckt-eintrag form {
+  margin: 0;
+}
+
+.entdeckt-info {
+  /* Auf schmalen Bildschirmen rutschen die Knoepfe in eine eigene Zeile,
+     statt den Titel auf ein paar Zeichen Breite zusammenzudruecken. */
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.entdeckt-details {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.entdeckt-details .sender {
+  display: inline-block;
+  font-size: 0.65rem;
+  padding: 0.05rem 0.4rem;
+}
+
+.ausblenden-button {
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.ausblenden-button:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}

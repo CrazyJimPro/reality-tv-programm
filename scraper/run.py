@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from scraper.base import ScraperFehler
+from scraper.entdecken import finde_kandidaten
 from scraper.filter import filtere_reality_shows
 from scraper.merge import merge
 from scraper.sources import rtl, rtlplus, tvspielfilm
@@ -22,6 +23,7 @@ from scraper.storage import (
     markiere_quelle_erfolg,
     markiere_quelle_fehler,
     speichere_eintraege,
+    speichere_entdeckungen,
 )
 
 PROJEKT_ROOT = Path(__file__).resolve().parent.parent
@@ -98,6 +100,12 @@ def main() -> None:
         behalte_sender=tuple(ausgefallene_sender),
     )
     logger.info("Gespeichert fuer Zeitraum %s bis %s", heute, bis)
+
+    # Kandidaten fuer "Neu entdeckt" - bewusst ungefiltert, abgeglichen
+    # wird erst beim Anzeigen gegen die dann aktuelle Liste.
+    kandidaten = [(e, s) for e, s in finde_kandidaten(gemergt) if heute <= e.datum <= bis]
+    speichere_entdeckungen(kandidaten, db_pfad=PROJEKT_ROOT / "data" / "programm.db")
+    logger.info("%d Ausstrahlungen mit Reality-/Doku-Soap-Genre fuer 'Neu entdeckt'", len(kandidaten))
 
     status = hole_quellen_status()
     for eintrag in status:

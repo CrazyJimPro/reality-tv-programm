@@ -61,12 +61,31 @@
     <button type="submit" class="speichern-button">Speichern</button>
   </form>
 
+  {% if ausgeblendet %}
+    <!-- Ausserhalb des Formulars oben: jeder Knopf schickt sein eigenes kleines Formular ab. -->
+    <section class="neue-show" id="ausgeblendet">
+      <h2>Ausgeblendete Vorschläge</h2>
+      <p class="hinweis">Diese Titel hast du unter „Neu entdeckt“ ausgeblendet. „Wieder anzeigen“ holt sie dorthin zurück.</p>
+      <ul class="entdeckt-liste">
+        {% for titel in ausgeblendet %}
+          <li class="entdeckt-eintrag">
+            <span class="entdeckt-info">{{ titel }}</span>
+            <form method="post" action="{{ url_for('entdeckung_einblenden') }}">
+              <input type="hidden" name="titel" value="{{ titel }}">
+              <button type="submit" class="ausblenden-button">Wieder anzeigen</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
   <!-- Bewusst ausserhalb des Formulars oben: ein Knopf darin wuerde beim
        Anklicken die Sendungsauswahl abschicken. -->
   <section class="neue-show">
     <h2>Sicherung</h2>
     <p class="hinweis">
-      Sichert deine Sendungsliste — das Einzige am Tool, was Handarbeit ist.
+      Sichert deine Sendungsliste (samt der unter „Neu entdeckt“ ausgeblendeten Titel) — das Einzige am Tool, was Handarbeit ist.
       Die Sendetermine selbst sind nicht dabei, die holt der nächste Datenabruf ohnehin neu.
       Gesichert wird der <strong>gespeicherte</strong> Stand: falls oben noch etwas offen ist, erst „Speichern“.
     </p>
