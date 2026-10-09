@@ -83,6 +83,11 @@ def main() -> None:
     reality = filtere_reality_shows(gemergt)
     logger.info("%d davon erkannt als Reality-TV (siehe config/reality_shows.json)", len(reality))
 
+    # Staffel/Folge und Folgentitel fuer die Erkennung von Wiederholungen und
+    # das "Gesehen"-Haekchen je Folge - nur fuer die gefundenen Sendungen.
+    tvspielfilm.folgen_ergaenzen(reality)
+    logger.info("%d davon mit Folgenangabe", sum(1 for e in reality if e.folge or e.folgentitel))
+
     heute = date.today()
     bis = heute + timedelta(days=VORSCHAU_TAGE - 1)
 

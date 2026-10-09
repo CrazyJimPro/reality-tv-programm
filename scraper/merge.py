@@ -28,6 +28,11 @@ class MergedEintrag:
     beschreibung: str | None = None
     genre: str | None = None
     quellen: list[str] = field(default_factory=list)
+    detail_url: str | None = None
+    # Von der Detailseite (scraper/sources/tvspielfilm.py:folgen_ergaenzen),
+    # z.B. "Staffel 7, Folge 2/13" und "Kanada: Alexander und Melanie"
+    folge: str | None = None
+    folgentitel: str | None = None
 
     @property
     def konfidenz(self) -> str:
@@ -35,7 +40,7 @@ class MergedEintrag:
 
 
 def _normalisiert(titel: str) -> str:
-    return " ".join(titel.lower().replace("-", " ").split())
+    return " ".join(titel.lower().replace("-", " ").replace("–", " ").replace("—", " ").split())
 
 
 def _minuten(t: time) -> int:
@@ -82,6 +87,7 @@ def merge(eintraege: list[ProgrammEintrag]) -> list[MergedEintrag]:
             beste = gruppe_sortiert[0]
             beschreibung = next((e.beschreibung for e in gruppe_sortiert if e.beschreibung), None)
             genre = next((e.genre for e in gruppe_sortiert if e.genre), None)
+            detail_url = next((e.detail_url for e in gruppe_sortiert if e.detail_url), None)
             quellen = sorted({e.quelle for e in gruppe}, key=_quellen_rang)
             ergebnis.append(
                 MergedEintrag(
@@ -92,6 +98,7 @@ def merge(eintraege: list[ProgrammEintrag]) -> list[MergedEintrag]:
                     beschreibung=beschreibung,
                     genre=genre,
                     quellen=quellen,
+                    detail_url=detail_url,
                 )
             )
 

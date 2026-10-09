@@ -528,3 +528,97 @@ a.hinzufuegen-button {
   border-color: var(--fg);
   color: var(--fg);
 }
+
+/* Kennzeichen, Quellenhinweis und Gesehen-Knopf rechts in der Zeile */
+.marken {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.wiederholung {
+  font-size: 0.7rem;
+  color: var(--muted);
+  border: 1px dashed var(--muted);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.gesehen-knopf {
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gesehen-knopf:hover {
+  border-color: #1a7a3a;
+  color: #1a7a3a;
+}
+
+.ist-gesehen .gesehen-knopf {
+  background: #1a7a3a;
+  border-color: #1a7a3a;
+  color: white;
+}
+
+/* Gesehenes bleibt sichtbar, tritt aber zurueck */
+.sendung.ist-gesehen .uhrzeit,
+.sendung.ist-gesehen .titel,
+.sendung.ist-gesehen .beschreibung {
+  opacity: 0.55;
+}
+
+.anzeige-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 1.5rem 0 0 0;
+  font-size: 0.95rem;
+}
+
+.anzeige-filter label {
+  cursor: pointer;
+}
+
+.ohne-wiederholungen .sendung[data-wiederholung="1"],
+.ohne-gesehene .sendung.ist-gesehen {
+  display: none;
+}
+
+.alles-gefiltert {
+  display: none;
+}
+
+.tag.alles-ausgeblendet .alles-gefiltert {
+  display: block;
+}
+
+/* Handybreite: Kennzeichen und Gesehen-Knopf in eine eigene Zeile unter dem
+   Titel - in der vierten Spalte wurden sie rechts abgeschnitten, und der
+   Titel brach Wort fuer Wort um. */
+@media (max-width: 600px) {
+  body {
+    padding: 1rem;
+  }
+
+  .sendung {
+    grid-template-columns: 3rem 5.5rem 1fr;
+    gap: 0.4rem 0.6rem;
+  }
+
+  .marken {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

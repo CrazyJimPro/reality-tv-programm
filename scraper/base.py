@@ -24,6 +24,9 @@ class ProgrammEintrag:
     titel: str
     beschreibung: str | None = None
     genre: str | None = None
+    # Detailseite der Ausstrahlung (nur tvspielfilm.de) - daraus werden fuer
+    # die gefundenen Sendungen Staffel/Folge und Folgentitel nachgeladen
+    detail_url: str | None = None
 
 
 class ScraperFehler(Exception):

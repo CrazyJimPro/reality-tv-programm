@@ -21,13 +21,16 @@ from __future__ import annotations
 import html as html_lib
 import json
 import logging
+import threading
 import time as time_module
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
 from scraper.base import ProgrammEintrag, ScraperFehler, get_html, neue_session
+from scraper.merge import MergedEintrag
 
 QUELLE = "tvspielfilm.de"
 
@@ -59,6 +62,14 @@ WARTEZEIT_ZWISCHEN_REQUESTS_SEK = 0.4
 # Bewusst klein gehalten, um tvspielfilm.de nicht mit Anfragen zu fluten.
 GLEICHZEITIGE_SENDER = 3
 
+PROJEKT_ROOT = Path(__file__).resolve().parent.parent.parent
+# Folgenangaben je Detailseite. Eine Ausstrahlung aendert ihre Folge nicht -
+# einmal gelesen, reicht. Spart bei jedem App-Start die Seiten der Termine,
+# die schon beim letzten Lauf da waren.
+FOLGEN_CACHE_PFAD = PROJEKT_ROOT / "data" / "folgen_cache.json"
+# Eintraege fuer Ausstrahlungen, die so lange vorbei sind, fliegen raus
+FOLGEN_CACHE_TAGE = 7
+
 logger = logging.getLogger(__name__)
 
 
@@ -85,6 +96,7 @@ def _parse_tag(html_text: str, sender: str, tag: date) -> list[ProgrammEintrag]:
         except ValueError:
             continue
         genre_teile = [t for t in (info.get("category1"), info.get("category2")) if t]
+        detail_link = title_cell.find("a", href=lambda h: bool(h) and "/tv-programm/sendung/" in h)
         eintraege.append(
             ProgrammEintrag(
                 quelle=QUELLE,
@@ -93,9 +105,88 @@ def _parse_tag(html_text: str, sender: str, tag: date) -> list[ProgrammEintrag]:
                 uhrzeit=uhrzeit,
                 titel=strong.get_text(strip=True),
                 genre=" / ".join(genre_teile) or None,
+                detail_url=detail_link["href"] if detail_link else None,
             )
         )
     return eintraege
+
+
+def _parse_folge(html_text: str) -> tuple[str | None, str | None]:
+    """Liest (Folge, Folgentitel) aus einer Detailseite.
+
+    Aufbau (Stand Oktober 2026): innerhalb von <article class="broadcast-detail">
+    steht der Folgentitel als <h2 class="broadcast-info">, direkt danach
+    <section class="serial-info"><span>Staffel 7, Folge 2/13</span></section>.
+    Nur innerhalb dieses Artikels suchen - weiter unten auf der Seite stehen
+    Tipps zu *anderen* Sendungen mit eigenen Staffel-/Folgenangaben. Ein
+    zweites h2.broadcast-info ("Mehr zu <Titel>") ist kein Folgentitel."""
+    soup = BeautifulSoup(html_text, "html.parser")
+    artikel = soup.select_one("article.broadcast-detail")
+    if artikel is None:
+        return None, None
+    serial = artikel.select_one("section.serial-info")
+    folge = " ".join(span.get_text(" ", strip=True) for span in serial.find_all("span")) if serial else ""
+    folgentitel = next(
+        (
+            h2.get_text(" ", strip=True)
+            for h2 in artikel.select("h2.broadcast-info")
+            if not h2.get_text(strip=True).startswith("Mehr zu")
+        ),
+        "",
+    )
+    return folge or None, folgentitel or None
+
+
+def _lade_folgen_cache() -> dict:
+    try:
+        return json.loads(FOLGEN_CACHE_PFAD.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def folgen_ergaenzen(eintraege: list[MergedEintrag]) -> None:
+    """Traegt Folge und Folgentitel in die (bereits gefilterten) Eintraege ein.
+
+    Bewusst nur fuer die gefundenen Sendungen, nicht fuers ganze Programm -
+    das waeren ueber 3000 Seiten pro Lauf. Faellt eine Seite aus, bleibt der
+    Eintrag eben ohne Folgenangabe; der Lauf selbst scheitert daran nie."""
+    cache = _lade_folgen_cache()
+    grenze = (date.today() - timedelta(days=FOLGEN_CACHE_TAGE)).isoformat()
+    cache = {url: wert for url, wert in cache.items() if wert.get("datum", "") >= grenze}
+
+    offen = sorted({e.detail_url for e in eintraege if e.detail_url and e.detail_url not in cache})
+    datum_je_url = {e.detail_url: e.datum.isoformat() for e in eintraege if e.detail_url}
+    sperre = threading.Lock()
+    lokal = threading.local()
+
+    def _hole(url: str) -> None:
+        if not hasattr(lokal, "session"):
+            lokal.session = neue_session()
+        try:
+            folge, folgentitel = _parse_folge(get_html(lokal.session, url))
+        except Exception as exc:  # Netzwerk oder unerwarteter Seitenaufbau
+            logger.warning("%s: Detailseite %s nicht lesbar (%s)", QUELLE, url, exc)
+            return
+        with sperre:
+            cache[url] = {"folge": folge, "folgentitel": folgentitel, "datum": datum_je_url[url]}
+        time_module.sleep(WARTEZEIT_ZWISCHEN_REQUESTS_SEK)
+
+    if offen:
+        logger.info("%s: lese %d Detailseiten fuer Folgenangaben", QUELLE, len(offen))
+        with ThreadPoolExecutor(max_workers=GLEICHZEITIGE_SENDER) as pool:
+            list(pool.map(_hole, offen))
+
+    for eintrag in eintraege:
+        wert = cache.get(eintrag.detail_url or "")
+        if wert:
+            eintrag.folge = wert.get("folge")
+            eintrag.folgentitel = wert.get("folgentitel")
+
+    try:
+        FOLGEN_CACHE_PFAD.parent.mkdir(parents=True, exist_ok=True)
+        FOLGEN_CACHE_PFAD.write_text(json.dumps(cache, ensure_ascii=False, indent=1), encoding="utf-8")
+    except OSError as exc:
+        logger.warning("Folgen-Zwischenspeicher nicht schreibbar (%s)", exc)
 
 
 def _fetch_sender(sender: str, slug: str, heute: date) -> list[ProgrammEintrag]:

@@ -32,6 +32,7 @@ if str(PROJEKT_ROOT) not in sys.path:
 from flask import Flask, jsonify, redirect, render_template, request, url_for  # noqa: E402
 
 from scraper.entdecken import STUFE_REALITY, STUFE_SOAP, fuer_anzeige  # noqa: E402
+from scraper.folgen import gesehen_schluessel, hauptausstrahlung_von, hauptausstrahlungen  # noqa: E402
 from scraper.filter import CONFIG_PFAD, lade_shows_config, passt_zu_namen, speichere_shows_config  # noqa: E402
 from scraper.sicherung import (  # noqa: E402
     SicherungsFehler,
@@ -43,9 +44,12 @@ from scraper.sources.tvspielfilm import SENDER_SLUGS  # noqa: E402
 from scraper.storage import (  # noqa: E402
     DB_PFAD,
     hole_entdeckungen,
+    hole_folgen_verlauf,
+    hole_gesehen,
     hole_programme,
     hole_quellen_status,
     init_db,
+    setze_gesehen,
     uebernehme_entdeckungen,
 )
 from vorschlaege import VORSCHLAEGE  # noqa: E402
@@ -292,8 +296,16 @@ def index():
     uebernaechste_woche_bis = heute + timedelta(days=VORSCHAU_TAGE - 1)
 
     rows = hole_programme(ab_datum=heute, bis_datum=uebernaechste_woche_bis, db_pfad=DB_PFAD)
+    haupt = hauptausstrahlungen(hole_folgen_verlauf(uebernaechste_woche_bis, db_pfad=DB_PFAD))
+    gesehen = hole_gesehen(db_pfad=DB_PFAD)
     for row in rows:
-        row["staffel_folge"] = _staffel_folge(row.get("beschreibung"))
+        # Folgenangabe der Detailseite zuerst, sonst wie bisher aus dem
+        # Untertitel von rtl.de
+        row["staffel_folge"] = _staffel_folge(row.get("folge")) or _staffel_folge(row.get("beschreibung"))
+        row["schluessel"] = gesehen_schluessel(row)
+        row["gesehen"] = row["schluessel"] in gesehen
+        hauptrow = hauptausstrahlung_von(row, haupt)
+        row["hauptausstrahlung"] = f"{_termin_filter(_zeitpunkt(hauptrow))} auf {hauptrow['sender']}" if hauptrow else None
 
     naechste_woche = _woche_gruppieren(rows, heute, naechste_woche_bis)
     uebernaechste_woche = _woche_gruppieren(rows, uebernaechste_woche_ab, uebernaechste_woche_bis)
@@ -342,11 +354,26 @@ def _show_namen(config: dict) -> list[str]:
     return namen
 
 
+def _zeitpunkt(row: dict) -> datetime:
+    return datetime.combine(date.fromisoformat(row["datum"]), datetime.strptime(row["uhrzeit"], "%H:%M").time())
+
+
 @app.template_filter("termin")
 def _termin_filter(zeitpunkt: datetime | None) -> str:
     if zeitpunkt is None:
         return "heute schon gelaufen"
     return f"{WOCHENTAGE_KURZ[zeitpunkt.weekday()]} {zeitpunkt:%d.%m.}, {zeitpunkt:%H:%M}"
+
+
+@app.route("/gesehen", methods=["POST"])
+def gesehen_setzen():
+    """Haekchen setzen/entfernen - per fetch aus der Uebersicht, ohne Neuladen."""
+    daten = request.get_json(silent=True) or {}
+    schluessel = str(daten.get("schluessel", "")).strip()
+    if not schluessel:
+        return jsonify({"ok": False}), 400
+    setze_gesehen(schluessel, bool(daten.get("gesehen")), db_pfad=DB_PFAD)
+    return jsonify({"ok": True})
 
 
 @app.route("/entdeckung/hinzufuegen", methods=["POST"])

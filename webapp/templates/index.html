@@ -128,22 +128,30 @@
           {% if tag.eintraege %}
             <ul class="sendungen">
               {% for e in tag.eintraege %}
-                <li class="sendung">
+                <li class="sendung{% if e.gesehen %} ist-gesehen{% endif %}" data-schluessel="{{ e.schluessel }}"{% if e.hauptausstrahlung %} data-wiederholung="1"{% endif %}>
                   <span class="uhrzeit">{{ e.uhrzeit }}</span>
                   <span class="sender sender-{{ e.sender|lower|replace('.', '')|replace(' ', '')|replace('+', 'plus') }}">{{ e.sender }}</span>
                   <span class="titel">{{ e.titel }}</span>
-                  {% if e.staffel_folge %}
-                    <span class="staffel-folge">{{ e.staffel_folge }}</span>
-                  {% endif %}
-                  {% if e.konfidenz == 'mittel' and e.sender != 'RTL+' %}
-                    <span class="konfidenz" title="Nur von einer Quelle bestätigt">nur 1 Quelle</span>
-                  {% endif %}
-                  {% if e.beschreibung %}
-                    <p class="beschreibung">{{ e.beschreibung }}</p>
+                  <span class="marken">
+                    {% if e.staffel_folge %}
+                      <span class="staffel-folge">{{ e.staffel_folge }}</span>
+                    {% endif %}
+                    {% if e.hauptausstrahlung %}
+                      <span class="wiederholung" title="Dieselbe Folge läuft auch: {{ e.hauptausstrahlung }} (Hauptausstrahlung)">Wiederholung</span>
+                    {% endif %}
+                    {% if e.konfidenz == 'mittel' and e.sender != 'RTL+' %}
+                      <span class="konfidenz" title="Nur von einer Quelle bestätigt">nur 1 Quelle</span>
+                    {% endif %}
+                    <button type="button" class="gesehen-knopf" aria-pressed="{{ 'true' if e.gesehen else 'false' }}"
+                            title="{{ 'Diese Folge' if e.folge or e.folgentitel else 'Diese Ausstrahlung' }} als gesehen markieren">✓</button>
+                  </span>
+                  {% if e.beschreibung or e.folgentitel %}
+                    <p class="beschreibung">{{ e.beschreibung or e.folgentitel }}</p>
                   {% endif %}
                 </li>
               {% endfor %}
             </ul>
+            <p class="keine-sendung alles-gefiltert">Alles an diesem Tag ist durch die Schalter oben ausgeblendet.</p>
           {% else %}
             <p class="keine-sendung">Keine bekannten Reality-Formate an diesem Tag.</p>
           {% endif %}
@@ -151,6 +159,11 @@
       {% endfor %}
     </section>
   {% endmacro %}
+
+  <section class="anzeige-filter">
+    <label><input type="checkbox" id="filter-wiederholungen"> Wiederholungen ausblenden</label>
+    <label><input type="checkbox" id="filter-gesehen"> Gesehenes ausblenden</label>
+  </section>
 
   {{ woche("Nächste Woche", naechste_woche) }}
   {{ woche("Übernächste Woche", uebernaechste_woche) }}
@@ -179,6 +192,8 @@
     </script>
   {% endif %}
 
+  <script>window.RTV_GESEHEN_URL = "{{ url_for('gesehen_setzen') }}";</script>
+  <script src="{{ url_for('static', filename='uebersicht.js') }}"></script>
   <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>
 </html>

@@ -15,8 +15,13 @@ CONFIG_VORLAGE_PFAD = PROJEKT_ROOT / "config" / "reality_shows.default.json"
 AEHNLICHKEIT_SCHWELLE = 88
 
 
+# Bindestrich, Gedankenstrich, Geviertstrich: rtl.de schreibt "First Dates -
+# Ein Tisch fuer zwei", tvspielfilm.de dieselbe Sendung mit "–"
+STRICHE = str.maketrans({"-": " ", "–": " ", "—": " "})
+
+
 def _normalisiert(text: str) -> str:
-    return " ".join(text.lower().replace("-", " ").replace("!", "").split())
+    return " ".join(text.lower().translate(STRICHE).replace("!", "").split())
 
 
 def lade_shows_config(config_pfad: Path = CONFIG_PFAD) -> dict:

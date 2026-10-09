@@ -22,7 +22,17 @@ CREATE TABLE IF NOT EXISTS programme (
     quellen TEXT NOT NULL,
     konfidenz TEXT NOT NULL,
     aktualisiert_am TEXT NOT NULL,
+    folge TEXT,
+    folgentitel TEXT,
     PRIMARY KEY (sender, datum, uhrzeit, titel)
+);
+
+-- "Gesehen"-Haekchen. Schluessel je Folge (Titel + Staffel/Folge bzw.
+-- Folgentitel), damit ein Haekchen auch alle Wiederholungen der Folge
+-- abdeckt; ohne Folgenangabe je einzelner Ausstrahlung (webapp/app.py).
+CREATE TABLE IF NOT EXISTS gesehen (
+    schluessel TEXT PRIMARY KEY,
+    gesehen_am TEXT NOT NULL
 );
 
 -- Kandidaten fuer den Kasten "Neu entdeckt" (scraper/entdecken.py): alle
@@ -68,8 +78,20 @@ def _schluessel_migrieren(conn: sqlite3.Connection) -> None:
         return
     conn.execute("ALTER TABLE programme RENAME TO programme_alt")
     conn.executescript(SCHEMA)
-    conn.execute("INSERT OR IGNORE INTO programme SELECT * FROM programme_alt")
+    # Spalten ausdruecklich nennen: die neue Tabelle hat inzwischen mehr
+    # Spalten als die alte, ein "SELECT *" passte nicht mehr.
+    alte_spalten = ", ".join(row["name"] for row in spalten)
+    conn.execute(f"INSERT OR IGNORE INTO programme ({alte_spalten}) SELECT {alte_spalten} FROM programme_alt")
     conn.execute("DROP TABLE programme_alt")
+
+
+def _spalten_ergaenzen(conn: sqlite3.Connection) -> None:
+    """Seit v1.9.0: Folge und Folgentitel. CREATE TABLE IF NOT EXISTS laesst
+    eine bestehende Tabelle unveraendert, die Spalten kommen also hier dazu."""
+    vorhanden = {row["name"] for row in conn.execute("PRAGMA table_info(programme)")}
+    for spalte in ("folge", "folgentitel"):
+        if spalte not in vorhanden:
+            conn.execute(f"ALTER TABLE programme ADD COLUMN {spalte} TEXT")
 
 
 def init_db(db_pfad: Path = DB_PFAD) -> None:
@@ -77,6 +99,7 @@ def init_db(db_pfad: Path = DB_PFAD) -> None:
         # Bestehende Tabelle zuerst umbauen, sonst legt SCHEMA (IF NOT EXISTS) nichts neu an.
         _schluessel_migrieren(conn)
         conn.executescript(SCHEMA)
+        _spalten_ergaenzen(conn)
 
 
 def speichere_eintraege(
@@ -103,8 +126,8 @@ def speichere_eintraege(
         conn.execute(loeschen, parameter)
         conn.executemany(
             """
-            INSERT OR REPLACE INTO programme (sender, datum, uhrzeit, titel, beschreibung, genre, quellen, konfidenz, aktualisiert_am)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO programme (sender, datum, uhrzeit, titel, beschreibung, genre, quellen, konfidenz, aktualisiert_am, folge, folgentitel)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
@@ -117,6 +140,8 @@ def speichere_eintraege(
                     ",".join(e.quellen),
                     e.konfidenz,
                     jetzt,
+                    e.folge,
+                    e.folgentitel,
                 )
                 for e in eintraege
             ],
@@ -220,3 +245,35 @@ def uebernehme_entdeckungen(rows: list[dict], db_pfad: Path = DB_PFAD) -> None:
                 for r in rows
             ],
         )
+
+
+def hole_folgen_verlauf(bis_datum: date, db_pfad: Path = DB_PFAD) -> list[dict]:
+    """Alle gespeicherten Ausstrahlungen mit Folgenangabe bis bis_datum -
+    auch vergangene: Zeilen vor dem aktuellen Zeitraum loescht kein Lauf,
+    so zaehlt eine Erstausstrahlung von letzter Woche fuer die Erkennung
+    von Wiederholungen mit."""
+    with closing(_verbindung(db_pfad)) as conn:
+        rows = conn.execute(
+            """
+            SELECT sender, datum, uhrzeit, titel, folge, folgentitel FROM programme
+            WHERE datum <= ? AND (folge IS NOT NULL OR folgentitel IS NOT NULL)
+            """,
+            (bis_datum.isoformat(),),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+def hole_gesehen(db_pfad: Path = DB_PFAD) -> set[str]:
+    with closing(_verbindung(db_pfad)) as conn:
+        return {row["schluessel"] for row in conn.execute("SELECT schluessel FROM gesehen")}
+
+
+def setze_gesehen(schluessel: str, gesehen: bool, db_pfad: Path = DB_PFAD) -> None:
+    with closing(_verbindung(db_pfad)) as conn, conn:
+        if gesehen:
+            conn.execute(
+                "INSERT OR REPLACE INTO gesehen (schluessel, gesehen_am) VALUES (?, ?)",
+                (schluessel, datetime.now().isoformat(timespec="seconds")),
+            )
+        else:
+            conn.execute("DELETE FROM gesehen WHERE schluessel = ?", (schluessel,))

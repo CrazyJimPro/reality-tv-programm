@@ -1,6 +1,7 @@
 venv/
 data/*.db
 data/rtlplus_katalog.json
+data/folgen_cache.json
 logs/*.log
 __pycache__/
 *.pyc

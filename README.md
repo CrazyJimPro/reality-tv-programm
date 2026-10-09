@@ -22,6 +22,7 @@ keine geplante Aufgabe, kein Cronjob.
 | es täglich benutzen | [Starten und beenden](#starten-und-beenden) |
 | festlegen, welche Sendungen angezeigt werden | [Sendungen verwalten](#sendungen-verwalten) |
 | Reality-Formate finden, die ich noch nicht kenne | [Neue Formate entdecken](#neue-formate-entdecken) |
+| Gesehenes abhaken, Wiederholungen ausblenden | [Gesehen und Wiederholungen](#gesehen-und-wiederholungen) |
 | meine Sendungsliste sichern | [Sendungsliste sichern](#sendungsliste-sichern) |
 | meine Liste auf einen anderen Rechner holen | [Sicherung einspielen](#sicherung-einspielen) |
 | ein Problem lösen | [Wenn etwas nicht klappt](#wenn-etwas-nicht-klappt) |
@@ -265,6 +266,58 @@ Der ist bewusst getrennt, weil er deutlich mehr und gemischtere Treffer hat.
 
 ---
 
+# Gesehen und Wiederholungen
+
+## Eine Folge als gesehen markieren
+
+1. Rechts in der Zeile der Sendung auf das **✓** klicken.
+2. Der Knopf wird grün, die Zeile blasser.
+3. Nochmal klicken nimmt das Häkchen wieder weg.
+
+Das Häkchen gilt für die **Folge**, nicht nur für den einen Termin: Läuft
+dieselbe Folge noch einmal (etwa nachts), ist sie dort automatisch mit
+abgehakt. Gespeichert wird es in der App selbst — am PC und am Handy siehst
+du also denselben Stand.
+
+## Wiederholungen erkennen und ausblenden
+
+Läuft dieselbe Folge mehrmals, steht bei allen Terminen bis auf einen ein
+gestricheltes **„Wiederholung"**. Fährst du mit der Maus darüber, steht da,
+wann die Hauptausstrahlung läuft.
+
+Über der Übersicht gibt es zwei Schalter:
+
+- **„Wiederholungen ausblenden"** — zeigt jede Folge nur noch einmal
+- **„Gesehenes ausblenden"** — blendet abgehakte Folgen aus
+
+Die Schalter merkt sich der jeweilige Browser, sie bleiben also auch nach dem
+Neustart der App an. Ist an einem Tag alles ausgeblendet, steht dort ein
+Hinweis statt einer leeren Liste.
+
+## Was du erwarten kannst
+
+- **Woran eine Wiederholung erkannt wird:** Die Programmseiten kennzeichnen
+  Wiederholungen nicht. Das Tool liest aber für jede gefundene Sendung
+  Staffel/Folge und den Folgentitel nach (z. B. „Staffel 11, Folge 16" oder
+  „Kanada: Alexander und Melanie"). Gleiche Folge = gleiche Sendung.
+- **Welcher Termin als Hauptausstrahlung gilt:** der früheste **außerhalb der
+  Nacht** (0–6 Uhr). Spartensender zeigen eine Folge oft nachts um 01:25 und
+  dieselbe abends um 18:35 — ausgeblendet wird dann der Nachttermin, nicht der
+  Abendtermin.
+- Auch Folgen der **Vorwoche** zählen: Läuft eine Folge, die vor einer Woche
+  schon kam, erneut, ist sie eine Wiederholung. Was schon gelaufen ist, bevor
+  du die App das erste Mal gestartet hast, kann das Tool nicht wissen.
+- Manche Sendungen haben weder Folgennummer noch Folgentitel (z. B. einige
+  Magazine). Die werden nie als Wiederholung markiert, das Häkchen gilt bei
+  ihnen nur für den einen Termin.
+- Beim **ersten Datenabruf nach dem Update** dauert es einmalig etwa eine
+  halbe Minute länger, weil die Folgenangaben aller Termine gelesen werden.
+  Danach kommen nur noch neue Termine dazu.
+- Die Häkchen sind **nicht** Teil der Sicherung (sie stehen in
+  `data/programm.db`, nicht in der Sendungsliste).
+
+---
+
 # Sendungsliste sichern
 
 Deine Sendungsauswahl ist das Einzige am ganzen Tool, was Handarbeit ist —
@@ -438,6 +491,7 @@ Alles unterhalb von `%USERPROFILE%\reality-tv-programm` bzw.
 | `config/vor-wiederherstellung-*.json` | der Stand vor dem letzten Einspielen einer Sicherung (die letzten zehn) |
 | `data/programm.db` | die geholten Sendetermine |
 | `data/rtlplus_katalog.json` | Zwischenspeicher der RTL+-Suche (darf gelöscht werden) |
+| `data/folgen_cache.json` | Zwischenspeicher der Folgenangaben (darf gelöscht werden) |
 | `logs/start.log` | Meldungen des Startskripts |
 | `logs/webapp.log` | Meldungen der Web-App — **hier stehen Abstürze** |
 | `logs/scraper.log` | Protokoll der Datenabrufe |
@@ -489,6 +543,12 @@ deshalb gar nicht überschreiben.
   und übernimmt nur Termine, die dort ausdrücklich stehen: die Folgentabelle
   (Temptation Island VIP) oder Angaben wie „Staffel 7 ab 12. Oktober". Hörbücher
   und Podcasts mit gleichem Namen werden ausgesondert
+- Folgenangaben: `tvspielfilm.folgen_ergaenzen()` liest für jede **gefundene**
+  Sendung (nicht fürs ganze Programm) die Detailseite und übernimmt Staffel/Folge
+  und Folgentitel; Zwischenspeicher `data/folgen_cache.json`, Einträge fallen
+  sieben Tage nach der Ausstrahlung heraus. Daraus erkennt `scraper/folgen.py`
+  Wiederholungen und bildet den Schlüssel für das Gesehen-Häkchen (Tabelle
+  `gesehen`)
 - `scraper/merge.py` — führt Duplikate aus den Quellen zusammen
 - `scraper/filter.py` — Abgleich gegen `config/reality_shows.json`
 - `scraper/storage.py` — SQLite (`data/programm.db`)
@@ -514,6 +574,9 @@ Flask, erreichbar unter **Port 5000**:
   und einmal beim Start der App)
 - `/scrape-status` (JSON) — meldet, ob ein Lauf noch läuft; damit lädt sich
   die Übersicht selbst neu, sobald er fertig ist
+- `/gesehen` (POST, JSON) — Gesehen-Häkchen setzen/entfernen; die Schalter
+  über der Übersicht steuert `webapp/static/uebersicht.js` (Stand im
+  localStorage des Browsers)
 - `/entdeckung/hinzufuegen`, `/entdeckung/ausblenden`, `/entdeckung/einblenden`
   (POST) — Kasten „Neu entdeckt". Die Kandidaten berechnet
   `scraper/entdecken.py` bei jedem Lauf aus dem ungefilterten Programm und legt
