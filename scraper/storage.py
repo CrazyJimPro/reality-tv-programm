@@ -51,6 +51,18 @@ CREATE TABLE IF NOT EXISTS entdeckungen (
     PRIMARY KEY (sender, datum, uhrzeit, titel)
 );
 
+-- Staffelstarts nach dem Vorschauzeitraum (scraper/sources/tmdb.py),
+-- Abschnitt "Demnaechst" der Uebersicht. Jeder Lauf ersetzt die Tabelle.
+CREATE TABLE IF NOT EXISTS demnaechst (
+    tmdb_id INTEGER NOT NULL,
+    staffel INTEGER NOT NULL,
+    datum TEXT NOT NULL,
+    titel TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    beschreibung TEXT,
+    PRIMARY KEY (tmdb_id, staffel)
+);
+
 CREATE TABLE IF NOT EXISTS quellen_status (
     quelle TEXT PRIMARY KEY,
     letzter_erfolg_am TEXT,
@@ -108,6 +120,7 @@ def speichere_eintraege(
     bis_datum: date,
     db_pfad: Path = DB_PFAD,
     behalte_sender: tuple[str, ...] = (),
+    behalte_quellen: tuple[str, ...] = (),
 ) -> None:
     """Ersetzt alle gespeicherten Sendungen im Zeitraum [ab_datum, bis_datum]
     durch die frisch gemergten Eintraege. Wird nur aufgerufen, wenn der
@@ -115,7 +128,9 @@ def speichere_eintraege(
 
     behalte_sender: Sender, deren bisherige Zeilen NICHT geloescht werden -
     gebraucht, wenn deren Quelle in diesem Lauf ausgefallen ist (sonst wuerden
-    ihre zuletzt guten Daten mit einem Fehlschlag verschwinden)."""
+    ihre zuletzt guten Daten mit einem Fehlschlag verschwinden).
+    behalte_quellen: dasselbe fuer Quellen, deren Zeilen auf mehrere Sender
+    verteilt sind (TMDB: Joyn, Prime Video, ...)."""
     jetzt = datetime.now().isoformat(timespec="seconds")
     with closing(_verbindung(db_pfad)) as conn, conn:
         loeschen = "DELETE FROM programme WHERE datum >= ? AND datum <= ?"
@@ -123,6 +138,9 @@ def speichere_eintraege(
         if behalte_sender:
             loeschen += f" AND sender NOT IN ({','.join('?' * len(behalte_sender))})"
             parameter.extend(behalte_sender)
+        if behalte_quellen:
+            loeschen += f" AND quellen NOT IN ({','.join('?' * len(behalte_quellen))})"
+            parameter.extend(behalte_quellen)
         conn.execute(loeschen, parameter)
         conn.executemany(
             """
@@ -172,6 +190,11 @@ def markiere_quelle_fehler(quelle: str, fehlertext: str, db_pfad: Path = DB_PFAD
             """,
             (quelle, fehlertext, jetzt),
         )
+
+
+def loesche_quelle_status(quelle: str, db_pfad: Path = DB_PFAD) -> None:
+    with closing(_verbindung(db_pfad)) as conn, conn:
+        conn.execute("DELETE FROM quellen_status WHERE quelle = ?", (quelle,))
 
 
 def hole_quellen_status(db_pfad: Path = DB_PFAD) -> list[dict]:
@@ -277,3 +300,23 @@ def setze_gesehen(schluessel: str, gesehen: bool, db_pfad: Path = DB_PFAD) -> No
             )
         else:
             conn.execute("DELETE FROM gesehen WHERE schluessel = ?", (schluessel,))
+
+
+def speichere_demnaechst(eintraege: list[dict], db_pfad: Path = DB_PFAD) -> None:
+    with closing(_verbindung(db_pfad)) as conn, conn:
+        conn.execute("DELETE FROM demnaechst")
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO demnaechst (tmdb_id, staffel, datum, titel, sender, beschreibung)
+            VALUES (:tmdb_id, :staffel, :datum, :titel, :sender, :beschreibung)
+            """,
+            eintraege,
+        )
+
+
+def hole_demnaechst(ab_datum: date, db_pfad: Path = DB_PFAD) -> list[dict]:
+    with closing(_verbindung(db_pfad)) as conn:
+        rows = conn.execute(
+            "SELECT * FROM demnaechst WHERE datum >= ? ORDER BY datum, titel", (ab_datum.isoformat(),)
+        ).fetchall()
+        return [dict(row) for row in rows]

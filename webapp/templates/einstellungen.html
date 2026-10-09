@@ -61,6 +61,48 @@
     <button type="submit" class="speichern-button">Speichern</button>
   </form>
 
+  <!-- Ausserhalb des Formulars oben, eigenes Formular -->
+  <section class="neue-show" id="tmdb">
+    <h2>Streaming-Starts (TMDB)</h2>
+    <p class="hinweis">
+      Mit einem kostenlosen Schlüssel von <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>
+      zeigt die Übersicht zusätzlich Starts bei Joyn, Prime Video, Netflix &amp; Co., die in keinem Fernsehprogramm stehen,
+      Staffelstarts nach den zwei Wochen („Demnächst“) und kommende Reality-Formate unter „Neu entdeckt“.
+      Der Schlüssel bleibt auf diesem Rechner und kommt nicht in die Sicherung.
+    </p>
+    {% if tmdb_fehler %}
+      <p class="fehler-hinweis">{{ tmdb_fehler }}</p>
+    {% endif %}
+    {% if tmdb_meldung == 'gespeichert' %}
+      <p class="gespeichert-hinweis">Schlüssel gespeichert und geprüft. Die Programmdaten werden gerade neu geholt (1-2 Minuten).</p>
+    {% elif tmdb_meldung == 'entfernt' %}
+      <p class="gespeichert-hinweis">Schlüssel entfernt. TMDB wird nicht mehr abgefragt.</p>
+    {% endif %}
+    {% if tmdb_endung %}
+      <p>Schlüssel ist eingetragen (endet auf <code>…{{ tmdb_endung }}</code>).</p>
+    {% endif %}
+    {% if tmdb_aus_streaming_info %}
+      <form method="post" action="{{ url_for('tmdb_schluessel') }}">
+        <input type="hidden" name="aktion" value="uebernehmen">
+        <p class="hinweis">Auf diesem Rechner ist die Streaming-Info-App mit einem TMDB-Schlüssel eingerichtet.</p>
+        <button type="submit" class="hinzufuegen-button">Schlüssel aus Streaming-Info übernehmen</button>
+      </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('tmdb_schluessel') }}">
+      <input type="hidden" name="aktion" value="speichern">
+      <div class="neue-show-felder" style="margin-top:0.8rem">
+        <input type="text" name="schluessel" placeholder="{{ 'Neuen Schlüssel eintragen' if tmdb_endung else 'TMDB-API-Schlüssel (v3) eintragen' }}" autocomplete="off" spellcheck="false">
+        <button type="submit" class="hinzufuegen-button">Schlüssel speichern</button>
+      </div>
+    </form>
+    {% if tmdb_endung %}
+      <form method="post" action="{{ url_for('tmdb_schluessel') }}" onsubmit="return confirm('TMDB-Schlüssel entfernen?');" style="margin-top:0.6rem">
+        <input type="hidden" name="aktion" value="entfernen">
+        <button type="submit" class="ausblenden-button">Schlüssel entfernen</button>
+      </form>
+    {% endif %}
+  </section>
+
   {% if ausgeblendet %}
     <!-- Ausserhalb des Formulars oben: jeder Knopf schickt sein eigenes kleines Formular ab. -->
     <section class="neue-show" id="ausgeblendet">

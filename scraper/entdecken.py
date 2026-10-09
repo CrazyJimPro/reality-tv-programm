@@ -18,10 +18,14 @@ ausgeblendeter Titel sofort, ohne neuen Datenabruf.
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from scraper.filter import normalisiert, passt_zu_namen
 from scraper.merge import MergedEintrag
+
+# Kandidaten von TMDB (kommende Reality bei Joyn, RTL+, Prime Video, Netflix,
+# siehe scraper/sources/tmdb.py) - nur ein Datum, keine Uhrzeit
+QUELLE_TMDB = "themoviedb.org"
 
 STUFE_REALITY = "reality"
 STUFE_SOAP = "soap"
@@ -79,7 +83,17 @@ def fuer_anzeige(
         schluessel = normalisiert(row["titel"])
         gruppe = gruppen.setdefault(
             schluessel,
-            {"titel": row["titel"], "genre": row["genre"], "stufe": row["stufe"], "sender": [], "anzahl": 0, "naechster": None},
+            {
+                "titel": row["titel"],
+                "genre": row["genre"],
+                "stufe": row["stufe"],
+                "sender": [],
+                "anzahl": 0,
+                "naechster": None,
+                # Bleibt nur wahr, wenn ausschliesslich TMDB den Titel kennt
+                "ohne_uhrzeit": True,
+                "beschreibung": row.get("beschreibung"),
+            },
         )
         gruppe["anzahl"] += 1
         if row["sender"] not in gruppe["sender"]:
@@ -87,7 +101,14 @@ def fuer_anzeige(
         # Kommt derselbe Titel in beiden Stufen vor, zaehlt die eindeutigere
         if row["stufe"] == STUFE_REALITY:
             gruppe["stufe"] = STUFE_REALITY
-        termin = datetime.combine(date.fromisoformat(row["datum"]), datetime.strptime(row["uhrzeit"], "%H:%M").time())
+        # Ohne Uhrzeit zaehlt der ganze Tag - sonst gaelte ein Start "heute"
+        # ab 0:01 Uhr schon als vorbei
+        von_tmdb = QUELLE_TMDB in (row.get("quellen") or "")
+        if not von_tmdb:
+            gruppe["ohne_uhrzeit"] = False
+            gruppe["genre"] = row["genre"]
+        uhrzeit = time(23, 59) if von_tmdb else datetime.strptime(row["uhrzeit"], "%H:%M").time()
+        termin = datetime.combine(date.fromisoformat(row["datum"]), uhrzeit)
         if termin >= jetzt and (gruppe["naechster"] is None or termin < gruppe["naechster"]):
             gruppe["naechster"] = termin
 

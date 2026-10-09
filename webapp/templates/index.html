@@ -80,7 +80,11 @@
             <span class="titel">{{ g.titel }}</span>
             <span class="entdeckt-details">
               {% for s in g.sender %}<span class="sender sender-{{ s|lower|replace('.', '')|replace(' ', '')|replace('+', 'plus') }}">{{ s }}</span> {% endfor %}
-              {{ g.genre }} · {{ g.anzahl }}× in 14 Tagen · nächster Termin: {{ g.naechster|termin }}
+              {% if g.ohne_uhrzeit %}
+                {{ g.genre }} · {{ g.beschreibung }} am {{ g.naechster|tag }} (laut TMDB)
+              {% else %}
+                {{ g.genre }} · {{ g.anzahl }}× in 14 Tagen · nächster Termin: {{ g.naechster|termin }}
+              {% endif %}
             </span>
           </div>
           <form method="post" action="{{ url_for('entdeckung_hinzufuegen') }}">
@@ -105,7 +109,7 @@
       {% if entdeckt_reality %}
         <details class="entdeckt-kasten">
           <summary><strong>Neu entdeckt:</strong> {{ entdeckt_reality|length }} Reality-Format{% if entdeckt_reality|length != 1 %}e{% endif %} im Programm, die nicht in deiner Liste stehen</summary>
-          <p class="hinweis">Erkannt am Genre, das tvspielfilm.de vergibt (z.B. „Realitysoap“, „Datingshow“). „Hinzufügen“ nimmt die Sendung sofort in Liste und Übersicht auf, „Ausblenden“ schlägt sie nicht mehr vor.</p>
+          <p class="hinweis">Erkannt am Genre, das tvspielfilm.de vergibt (z.B. „Realitysoap“, „Datingshow“){% if tmdb_aktiv %}, dazu kommende deutsche Reality bei Joyn, RTL+, Prime Video und Netflix laut TMDB{% endif %}. „Hinzufügen“ nimmt die Sendung sofort in Liste und Übersicht auf, „Ausblenden“ schlägt sie nicht mehr vor.</p>
           {{ entdeckt_liste(entdeckt_reality) }}
         </details>
       {% endif %}
@@ -129,7 +133,11 @@
             <ul class="sendungen">
               {% for e in tag.eintraege %}
                 <li class="sendung{% if e.gesehen %} ist-gesehen{% endif %}" data-schluessel="{{ e.schluessel }}"{% if e.hauptausstrahlung %} data-wiederholung="1"{% endif %}>
-                  <span class="uhrzeit">{{ e.uhrzeit }}</span>
+                  {% if 'themoviedb.org' in e.quellen %}
+                    <span class="uhrzeit" title="TMDB nennt nur den Tag, keine Uhrzeit">—</span>
+                  {% else %}
+                    <span class="uhrzeit">{{ e.uhrzeit }}</span>
+                  {% endif %}
                   <span class="sender sender-{{ e.sender|lower|replace('.', '')|replace(' ', '')|replace('+', 'plus') }}">{{ e.sender }}</span>
                   <span class="titel">{{ e.titel }}</span>
                   <span class="marken">
@@ -139,7 +147,9 @@
                     {% if e.hauptausstrahlung %}
                       <span class="wiederholung" title="Dieselbe Folge läuft auch: {{ e.hauptausstrahlung }} (Hauptausstrahlung)">Wiederholung</span>
                     {% endif %}
-                    {% if e.konfidenz == 'mittel' and e.sender != 'RTL+' %}
+                    {% if 'themoviedb.org' in e.quellen %}
+                      <span class="konfidenz" title="Termin aus der Community-Datenbank TMDB - ein Tag Abweichung ist möglich">laut TMDB</span>
+                    {% elif e.konfidenz == 'mittel' and e.sender != 'RTL+' %}
                       <span class="konfidenz" title="Nur von einer Quelle bestätigt">nur 1 Quelle</span>
                     {% endif %}
                     <button type="button" class="gesehen-knopf" aria-pressed="{{ 'true' if e.gesehen else 'false' }}"
@@ -168,10 +178,29 @@
   {{ woche("Nächste Woche", naechste_woche) }}
   {{ woche("Übernächste Woche", uebernaechste_woche) }}
 
+  {% if demnaechst %}
+    <section class="woche" id="demnaechst">
+      <h2>Demnächst: Staffelstarts</h2>
+      <p class="hinweis">Nach den zwei Wochen, für Sendungen aus deiner Liste &ndash; laut TMDB, nur mit Datum. Sobald ein Start in die zwei Wochen rückt, steht er oben mit Sender und Uhrzeit, falls er im Fernsehprogramm auftaucht.</p>
+      <ul class="sendungen">
+        {% for d in demnaechst %}
+          <li class="sendung">
+            <span class="uhrzeit">{{ d.datum|tag }}</span>
+            <span class="sender sender-{{ d.sender|lower|replace('.', '')|replace(' ', '')|replace('+', 'plus') }}">{{ d.sender }}</span>
+            <span class="titel">{{ d.titel }}</span>
+            <span class="marken"><span class="staffel-folge">Staffel {{ d.staffel }}</span></span>
+            {% if d.beschreibung %}<p class="beschreibung">{{ d.beschreibung }}</p>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
   <footer>
     <p>Läuft lokal auf deinem Rechner. Die Daten werden bei jedem Start geholt; mit <strong>Beenden</strong> ist alles wieder aus.
       Liste der erkannten Formate: <code>config/reality_shows.json</code>.
-      Termine mit <strong>RTL+</strong> stammen von plus.rtl.de &ndash; nur das, was die Seite selbst als Starttermin nennt, nichts Hochgerechnetes.</p>
+      Termine mit <strong>RTL+</strong> stammen von plus.rtl.de &ndash; nur das, was die Seite selbst als Starttermin nennt, nichts Hochgerechnetes.
+      {% if tmdb_aktiv %}Termine mit „laut TMDB“ stammen aus der Community-Datenbank themoviedb.org: nur Datum, ein Tag Abweichung ist möglich.{% endif %}</p>
   </footer>
 
   {% if scrape.laeuft %}

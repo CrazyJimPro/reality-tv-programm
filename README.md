@@ -23,6 +23,7 @@ keine geplante Aufgabe, kein Cronjob.
 | festlegen, welche Sendungen angezeigt werden | [Sendungen verwalten](#sendungen-verwalten) |
 | Reality-Formate finden, die ich noch nicht kenne | [Neue Formate entdecken](#neue-formate-entdecken) |
 | Gesehenes abhaken, Wiederholungen ausblenden | [Gesehen und Wiederholungen](#gesehen-und-wiederholungen) |
+| Starts bei Joyn, Prime Video, Netflix sehen | [Streaming-Starts (TMDB)](#streaming-starts-tmdb) |
 | meine Sendungsliste sichern | [Sendungsliste sichern](#sendungsliste-sichern) |
 | meine Liste auf einen anderen Rechner holen | [Sicherung einspielen](#sicherung-einspielen) |
 | ein Problem lösen | [Wenn etwas nicht klappt](#wenn-etwas-nicht-klappt) |
@@ -318,6 +319,68 @@ Hinweis statt einer leeren Liste.
 
 ---
 
+# Streaming-Starts (TMDB)
+
+Viele Reality-Formate starten zuerst im Streaming und erst Wochen später — oder
+nie — im Fernsehen. Joyn und Prime Video selbst lassen sich dafür nicht sinnvoll
+auslesen. Die Film- und Seriendatenbank **TMDB** (themoviedb.org) führt aber die
+kommenden Folgen mit Datum. Mit einem kostenlosen TMDB-Schlüssel zeigt die App:
+
+- **Starts, die in keinem Fernsehprogramm stehen**, direkt in der Wochenübersicht
+  (Sender z. B. „Joyn" oder „Prime Video", statt Uhrzeit ein „—")
+- **Demnächst:** Staffelstarts deiner Sendungen in den drei Monaten nach den zwei
+  Wochen, ganz unten auf der Übersicht
+- **Neu entdeckt:** zusätzlich kommende deutsche Reality-Formate bei Joyn, RTL+,
+  Prime Video und Netflix
+
+Ohne Schlüssel funktioniert alles andere wie bisher.
+
+## Einrichten — wenn die Streaming-Info-App auf demselben Rechner läuft
+
+1. Oben auf **„Sendungen verwalten →"**.
+2. Nach unten zum Abschnitt **„Streaming-Starts (TMDB)"**.
+3. Auf **„Schlüssel aus Streaming-Info übernehmen"** klicken.
+
+Der Knopf erscheint nur, wenn die Streaming-Info-App am üblichen Ort installiert
+ist (`%USERPROFILE%\streaming-info` bzw. `~/streaming-info`) und dort ein
+Schlüssel eingetragen ist.
+
+## Einrichten — mit einem eigenen Schlüssel
+
+1. Auf [themoviedb.org](https://www.themoviedb.org/signup) ein kostenloses Konto
+   anlegen und anmelden.
+2. Oben rechts auf das Profilbild → **Einstellungen** → links **API**.
+3. Einen API-Schlüssel anfordern (Typ „Developer", private Nutzung). Kopiert
+   wird der **„API-Schlüssel"** (32 Zeichen), nicht das lange Lesezugriffstoken.
+4. In der App unter **„Sendungen verwalten"** → **„Streaming-Starts (TMDB)"**
+   einfügen und **„Schlüssel speichern"** klicken.
+
+Die App probiert den Schlüssel vor dem Speichern aus. Passt er nicht, steht dort
+sofort eine Meldung. Klappt es, startet ein neuer Datenabruf; nach 1–2 Minuten
+erscheinen die ersten TMDB-Termine.
+
+## Was du erwarten kannst
+
+- Termine von TMDB sind mit **„laut TMDB"** markiert. Die Daten pflegt die
+  TMDB-Gemeinschaft: **ein Tag Abweichung kommt vor**, eine Uhrzeit gibt es nicht.
+- Die Senderangabe bei TMDB ist manchmal veraltet. Nennt TMDB keinen
+  Streamingdienst, steht als Sender schlicht „TMDB", die Beschreibung nennt dann
+  die Sender laut TMDB.
+- Steht eine Sendung am selben Tag (±1) schon im Fernsehprogramm oder bei RTL+,
+  zeigt die App nur diesen Termin — mit Uhrzeit und Sender — und nicht noch
+  einmal den von TMDB.
+- Gesucht werden die Namen und alternativen Schreibweisen aus deiner Liste,
+  **nur unter deutschen Produktionen** (sonst landet „Love Island" bei der
+  tschechischen Fassung). Findet TMDB zu einem Namen nichts, fehlt diese Sendung
+  einfach.
+- Der Schlüssel liegt in `config/tmdb.json` und ist **nicht** Teil der Sicherung
+  — die darf man ja gefahrlos weitergeben. Auf einem neuen Rechner also einmal
+  neu eintragen.
+- Entfernen: im selben Abschnitt **„Schlüssel entfernen"**. Danach verschwinden
+  die TMDB-Termine mit dem nächsten Datenabruf.
+
+---
+
 # Sendungsliste sichern
 
 Deine Sendungsauswahl ist das Einzige am ganzen Tool, was Handarbeit ist —
@@ -403,6 +466,22 @@ kopieren.
   Anzeigezeitraum rückt.
 - In `logs/scraper.log` steht unter `plus.rtl.de`, welche Seiten gefunden wurden
   und wie viele Termine sie ergaben.
+- Läuft sie bei Joyn, Prime Video oder Netflix, braucht es den
+  [TMDB-Schlüssel](#streaming-starts-tmdb). Welcher Name bei TMDB welcher Serie
+  zugeordnet wurde, steht in `data/tmdb_zuordnung.json` (`null` = nichts
+  gefunden). Hilft ein anderer Name, ihn als alternative Schreibweise eintragen.
+
+## „themoviedb.org: Schlüssel ungültig"
+
+Der eingetragene TMDB-Schlüssel wird nicht (mehr) angenommen.
+
+1. Auf themoviedb.org unter **Einstellungen → API** nachsehen, ob der Schlüssel
+   noch existiert.
+2. In der App unter **„Sendungen verwalten" → „Streaming-Starts (TMDB)"** neu
+   eintragen.
+
+Alles andere läuft unterdessen weiter, die zuletzt geholten TMDB-Termine bleiben
+stehen.
 
 ## Die Übersicht bleibt leer
 
@@ -492,6 +571,8 @@ Alles unterhalb von `%USERPROFILE%\reality-tv-programm` bzw.
 | `data/programm.db` | die geholten Sendetermine |
 | `data/rtlplus_katalog.json` | Zwischenspeicher der RTL+-Suche (darf gelöscht werden) |
 | `data/folgen_cache.json` | Zwischenspeicher der Folgenangaben (darf gelöscht werden) |
+| `config/tmdb.json` | dein TMDB-Schlüssel (nicht in der Sicherung) |
+| `data/tmdb_zuordnung.json` | welcher Listenname zu welcher TMDB-Serie gehört (darf gelöscht werden) |
 | `logs/start.log` | Meldungen des Startskripts |
 | `logs/webapp.log` | Meldungen der Web-App — **hier stehen Abstürze** |
 | `logs/scraper.log` | Protokoll der Datenabrufe |
@@ -549,6 +630,17 @@ deshalb gar nicht überschreiben.
   sieben Tage nach der Ausstrahlung heraus. Daraus erkennt `scraper/folgen.py`
   Wiederholungen und bildet den Schlüssel für das Gesehen-Häkchen (Tabelle
   `gesehen`)
+- `scraper/sources/tmdb.py` — Streaming- und Staffelstarts über die TMDB-API
+  (nur mit Schlüssel). Je Name/Alias der Liste die beste deutschsprachige Serie
+  (`search/tv`, gleicher Name vor Bekanntheit; Zuordnung 30 Tage
+  zwischengespeichert), dann `tv/{id}` und die Folgen der laufenden Staffel.
+  Termine im Zeitraum, die schon als Fernseh-/RTL+-Termin dastehen (±1 Tag),
+  sortiert `scraper/run.py` aus; spätere Folge-1-Termine landen in der Tabelle
+  `demnaechst`; `discover/tv` (Genre Reality, deutsch, Netzwerke Joyn 3155,
+  RTL+ 5428, Prime Video 1024, Netflix 213) liefert Vorschläge für „Neu
+  entdeckt". Joyn und Prime Video direkt wurden geprüft und verworfen: Joyn
+  führt nur bereits verfügbare Folgen, Amazon sperrt seine Schnittstelle in der
+  robots.txt
 - `scraper/merge.py` — führt Duplikate aus den Quellen zusammen
 - `scraper/filter.py` — Abgleich gegen `config/reality_shows.json`
 - `scraper/storage.py` — SQLite (`data/programm.db`)
@@ -574,6 +666,8 @@ Flask, erreichbar unter **Port 5000**:
   und einmal beim Start der App)
 - `/scrape-status` (JSON) — meldet, ob ein Lauf noch läuft; damit lädt sich
   die Übersicht selbst neu, sobald er fertig ist
+- `/tmdb-schluessel` (POST) — TMDB-Schlüssel speichern (vorher geprüft), aus
+  Streaming-Info übernehmen oder entfernen
 - `/gesehen` (POST, JSON) — Gesehen-Häkchen setzen/entfernen; die Schalter
   über der Übersicht steuert `webapp/static/uebersicht.js` (Stand im
   localStorage des Browsers)

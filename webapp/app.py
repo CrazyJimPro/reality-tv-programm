@@ -40,9 +40,11 @@ from scraper.sicherung import (  # noqa: E402
     sicherungs_dateiname,
     spiele_sicherung_ein,
 )
+from scraper.sources import tmdb  # noqa: E402
 from scraper.sources.tvspielfilm import SENDER_SLUGS  # noqa: E402
 from scraper.storage import (  # noqa: E402
     DB_PFAD,
+    hole_demnaechst,
     hole_entdeckungen,
     hole_folgen_verlauf,
     hole_gesehen,
@@ -73,7 +75,8 @@ WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 VERALTET_AB_STUNDEN = 24
 
 STAFFEL_MUSTER = re.compile(r"Staffel\s*(\d+)", re.IGNORECASE)
-FOLGE_MUSTER = re.compile(r"Folge\s*(\d+)", re.IGNORECASE)
+# Auch Bereiche: TMDB fasst Folgen vom selben Tag zu "Folge 19–20" zusammen
+FOLGE_MUSTER = re.compile(r"Folge\s*(\d+(?:\s*[–-]\s*\d+)?)", re.IGNORECASE)
 
 VERSION_PFAD = PROJEKT_ROOT / "VERSION"
 LOG_PFAD = PROJEKT_ROOT / "logs" / "webapp.log"
@@ -94,6 +97,10 @@ def _version() -> str:
 # es immer eine Erfolgsmeldung, egal wie der Lauf ausging).
 _scrape_sperre = threading.Lock()
 _scrape_status: dict[str, object] = {"laeuft": False, "fehler": None, "fertig_am": None}
+# Wird waehrend eines laufenden Abrufs etwas gespeichert (Sendungsliste,
+# TMDB-Schluessel), hat der laufende Abruf die Aenderung womoeglich schon
+# hinter sich - dann folgt danach genau ein weiterer.
+_nachlauf = threading.Event()
 # Referenz auf den gerade laufenden Scraper-Prozess, damit "Beenden" ihn
 # mitnehmen kann - sonst liefe er als Waise weiter, obwohl die App zu ist.
 _laufender_prozess: subprocess.Popen | None = None
@@ -147,7 +154,7 @@ def _staffel_folge(beschreibung: str | None) -> str | None:
     return " · ".join(teile) if teile else None
 
 
-def _scraper_ausfuehren() -> None:
+def _scraper_ausfuehren() -> bool:
     """Fuehrt einen Scrape-Lauf aus (dauert ca. 1-2 Minuten) und haelt das
     Ergebnis in _scrape_status fest.
 
@@ -159,7 +166,7 @@ def _scraper_ausfuehren() -> None:
     "Jetzt aktualisieren" klickt)."""
     global _laufender_prozess
     if not _scrape_sperre.acquire(blocking=False):
-        return
+        return False
     try:
         _scrape_status["laeuft"] = True
         _scrape_status["fehler"] = None
@@ -192,6 +199,7 @@ def _scraper_ausfuehren() -> None:
         _scrape_status["laeuft"] = False
         _scrape_status["fertig_am"] = datetime.now().isoformat(timespec="seconds")
         _scrape_sperre.release()
+    return True
 
 
 def _laufenden_scrape_beenden() -> None:
@@ -224,9 +232,22 @@ def _scrape_im_hintergrund_starten() -> bool:
     Seite sofort antwortet statt 1-2 Minuten zu haengen. Liefert False,
     wenn bereits einer laeuft."""
     if _scrape_status["laeuft"]:
+        _nachlauf.set()
         return False
-    threading.Thread(target=_scraper_ausfuehren, name="rtv-scrape", daemon=True).start()
+    threading.Thread(target=_scrape_mit_nachlauf, name="rtv-scrape", daemon=True).start()
     return True
+
+
+def _scrape_mit_nachlauf() -> None:
+    while True:
+        _nachlauf.clear()
+        if not _scraper_ausfuehren():
+            # Ein anderer Strang laeuft schon (zwei Klicks fast gleichzeitig) -
+            # der uebernimmt den Nachlauf
+            _nachlauf.set()
+            return
+        if not _nachlauf.is_set():
+            return
 
 
 def _alter_text(alter: timedelta) -> str:
@@ -324,7 +345,8 @@ def index():
     einrichtung_offen = not config.get("einrichtung_erledigt")
 
     entdeckt = fuer_anzeige(
-        hole_entdeckungen(heute, uebernaechste_woche_bis, db_pfad=DB_PFAD),
+        # Die TMDB-Vorschlaege reichen weiter als die zwei Wochen
+        hole_entdeckungen(heute, heute + timedelta(days=tmdb.TAGE_ENTDECKEN), db_pfad=DB_PFAD),
         show_namen=_show_namen(config),
         ausgeblendet=config.get("ausgeblendet", []),
     )
@@ -343,6 +365,10 @@ def index():
         entdeckt_soap=entdeckt[STUFE_SOAP],
         hinzugefuegt=request.args.get("hinzugefuegt"),
         hinzugefuegt_termine=request.args.get("termine"),
+        # Staffelstarts nach den zwei Wochen; was inzwischen hineingerutscht
+        # ist, steht schon in der Wochenansicht
+        demnaechst=[d for d in hole_demnaechst(heute, db_pfad=DB_PFAD) if d["datum"] > uebernaechste_woche_bis.isoformat()],
+        tmdb_aktiv=tmdb.lade_schluessel() is not None,
     )
 
 
@@ -363,6 +389,16 @@ def _termin_filter(zeitpunkt: datetime | None) -> str:
     if zeitpunkt is None:
         return "heute schon gelaufen"
     return f"{WOCHENTAGE_KURZ[zeitpunkt.weekday()]} {zeitpunkt:%d.%m.}, {zeitpunkt:%H:%M}"
+
+
+@app.template_filter("tag")
+def _tag_filter(wert: datetime | date | str | None) -> str:
+    """Nur das Datum - fuer Termine laut TMDB, die keine Uhrzeit haben."""
+    if wert is None:
+        return "heute"
+    if isinstance(wert, str):
+        wert = date.fromisoformat(wert)
+    return f"{WOCHENTAGE_KURZ[wert.weekday()]} {wert:%d.%m.}"
 
 
 @app.route("/gesehen", methods=["POST"])
@@ -567,7 +603,35 @@ def einstellungen():
         eingespielt=request.args.get("eingespielt"),
         fehler=request.args.get("fehler"),
         ausgeblendet=daten.get("ausgeblendet", []),
+        tmdb_endung=(tmdb.lade_schluessel() or "")[-4:],
+        tmdb_aus_streaming_info=tmdb.schluessel_aus_streaming_info() not in (None, tmdb.lade_schluessel()),
+        tmdb_meldung=request.args.get("tmdb"),
+        tmdb_fehler=request.args.get("tmdb_fehler"),
     )
+
+
+@app.route("/tmdb-schluessel", methods=["POST"])
+def tmdb_schluessel():
+    """Schluessel eintragen, aus Streaming-Info uebernehmen oder entfernen.
+    Ein neuer Schluessel wird vor dem Speichern bei TMDB ausprobiert - ein
+    Tippfehler soll hier auffallen, nicht erst als roter Status-Chip."""
+    aktion = request.form.get("aktion")
+    if aktion == "entfernen":
+        tmdb.speichere_schluessel(None)
+        _scrape_im_hintergrund_starten()
+        return redirect(url_for("einstellungen", tmdb="entfernt", _anchor="tmdb"))
+    if aktion == "uebernehmen":
+        schluessel = tmdb.schluessel_aus_streaming_info() or ""
+    else:
+        schluessel = request.form.get("schluessel", "").strip()
+    if not schluessel:
+        return redirect(url_for("einstellungen", tmdb_fehler="Bitte einen TMDB-Schlüssel eintragen.", _anchor="tmdb"))
+    fehler = tmdb.pruefe_schluessel(schluessel)
+    if fehler:
+        return redirect(url_for("einstellungen", tmdb_fehler=fehler, _anchor="tmdb"))
+    tmdb.speichere_schluessel(schluessel)
+    _scrape_im_hintergrund_starten()
+    return redirect(url_for("einstellungen", tmdb="gespeichert", _anchor="tmdb"))
 
 
 if __name__ == "__main__":

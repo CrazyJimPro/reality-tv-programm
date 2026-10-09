@@ -146,6 +146,11 @@ header h1 {
 .sender-sat1gold { background: #b8962e; color: #000; }
 .sender-tlc { background: #00a0dc; color: white; }
 .sender-dmax { background: #4a4a4a; color: #ffd200; }
+/* Streamingdienste (Termine laut TMDB) */
+.sender-joyn { background: #000; color: #fff; border: 1px solid #555; }
+.sender-primevideo { background: #00a8e1; color: #000; }
+.sender-netflix { background: #e50914; color: white; }
+.sender-tmdb { background: #0d253f; color: #01b4e4; }
 
 .titel { font-weight: 500; }
 
