@@ -38,6 +38,7 @@ from scraper.sicherung import (  # noqa: E402
     sicherungs_dateiname,
     spiele_sicherung_ein,
 )
+from scraper.sources.tvspielfilm import SENDER_SLUGS  # noqa: E402
 from scraper.storage import DB_PFAD, hole_programme, hole_quellen_status, init_db  # noqa: E402
 from vorschlaege import VORSCHLAEGE  # noqa: E402
 
@@ -309,6 +310,7 @@ def index():
         anzahl_gesamt=len(rows),
         scrape=_scrape_status,
         einrichtung_offen=einrichtung_offen,
+        sender_liste=list(SENDER_SLUGS),
     )
 
 

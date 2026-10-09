@@ -4,7 +4,7 @@ Liefert - anders als die einzelnen Sender-Seiten - eine Vorschau von bis zu
 14 Tagen und deckt alle gewuenschten Sender ueber dieselbe Seitenstruktur
 ab. Dient hier hauptsaechlich dazu, die Termine der "uebernaechsten Woche"
 zu befuellen, die rtl.de nicht mehr anzeigt - und ist die einzige Quelle
-fuer Sat.1, ProSieben, RTL2 und Kabel Eins ueberhaupt.
+fuer alle Sender ausser RTL und VOX ueberhaupt.
 
 Struktur (Stand September 2026, per Browser verifiziert):
   https://www.tvspielfilm.de/tv-programm/sendungen/rtl,RTL.html?date=2026-09-20
@@ -22,6 +22,7 @@ import html as html_lib
 import json
 import logging
 import time as time_module
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 
 from bs4 import BeautifulSoup
@@ -38,10 +39,25 @@ SENDER_SLUGS = {
     "ProSieben": "prosieben,PRO7",
     "RTL2": "rtl-zwei,RTL2",
     "Kabel Eins": "kabel-eins,K1",
+    # Spartensender mit vielen Reality-Wiederholungen und eigenen Doku-Soaps
+    # (Stand Oktober 2026 per Abruf geprueft). Nitro fehlt in der
+    # Senderliste der Seite, die Programmseite antwortet aber unter "nitro,RTL-N".
+    "sixx": "sixx,SIXX",
+    "RTLup": "rtlup,RTLPL",
+    "VOXup": "voxup,VOXUP",
+    "Nitro": "nitro,RTL-N",
+    "Pro7 Maxx": "prosieben-maxx,PRO7M",
+    "Sat.1 Gold": "sat1-gold,SAT1G",
+    "TLC": "tlc,TLC",
+    "DMAX": "dmax,DMAX",
 }
 
 TAGE_IM_VORAUS = 14
 WARTEZEIT_ZWISCHEN_REQUESTS_SEK = 0.4
+# Sender werden parallel abgefragt (innerhalb eines Senders weiter Tag fuer
+# Tag mit Pause) - sonst dauerte ein Lauf mit 14 Sendern mehrere Minuten.
+# Bewusst klein gehalten, um tvspielfilm.de nicht mit Anfragen zu fluten.
+GLEICHZEITIGE_SENDER = 3
 
 logger = logging.getLogger(__name__)
 
@@ -82,23 +98,33 @@ def _parse_tag(html_text: str, sender: str, tag: date) -> list[ProgrammEintrag]:
     return eintraege
 
 
-def fetch() -> list[ProgrammEintrag]:
-    """Holt das Programm aller vier Sender fuer die naechsten TAGE_IM_VORAUS Tage."""
+def _fetch_sender(sender: str, slug: str, heute: date) -> list[ProgrammEintrag]:
+    # Eigene Session je Sender: requests.Session ist nicht fuer die
+    # gleichzeitige Nutzung aus mehreren Threads gedacht.
     session = neue_session()
+    eintraege: list[ProgrammEintrag] = []
+    for offset in range(TAGE_IM_VORAUS):
+        tag = heute + timedelta(days=offset)
+        url = f"https://www.tvspielfilm.de/tv-programm/sendungen/{slug}.html?date={tag.isoformat()}"
+        try:
+            html_text = get_html(session, url)
+        except ScraperFehler as exc:
+            logger.warning("%s: Tag %s fuer %s konnte nicht geladen werden (%s)", QUELLE, tag, sender, exc)
+            continue
+        eintraege.extend(_parse_tag(html_text, sender, tag))
+        time_module.sleep(WARTEZEIT_ZWISCHEN_REQUESTS_SEK)
+    return eintraege
+
+
+def fetch() -> list[ProgrammEintrag]:
+    """Holt das Programm aller Sender in SENDER_SLUGS fuer die naechsten TAGE_IM_VORAUS Tage."""
     alle_eintraege: list[ProgrammEintrag] = []
     heute = date.today()
 
-    for sender, slug in SENDER_SLUGS.items():
-        for offset in range(TAGE_IM_VORAUS):
-            tag = heute + timedelta(days=offset)
-            url = f"https://www.tvspielfilm.de/tv-programm/sendungen/{slug}.html?date={tag.isoformat()}"
-            try:
-                html_text = get_html(session, url)
-            except ScraperFehler as exc:
-                logger.warning("%s: Tag %s fuer %s konnte nicht geladen werden (%s)", QUELLE, tag, sender, exc)
-                continue
-            alle_eintraege.extend(_parse_tag(html_text, sender, tag))
-            time_module.sleep(WARTEZEIT_ZWISCHEN_REQUESTS_SEK)
+    with ThreadPoolExecutor(max_workers=GLEICHZEITIGE_SENDER) as pool:
+        ergebnisse = pool.map(lambda paar: _fetch_sender(*paar, heute), SENDER_SLUGS.items())
+        for eintraege in ergebnisse:
+            alle_eintraege.extend(eintraege)
 
     if not alle_eintraege:
         raise ScraperFehler(f"{QUELLE}: keine Daten von keinem Sender erhalten")

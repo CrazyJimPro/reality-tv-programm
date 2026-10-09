@@ -2,8 +2,9 @@
 
 Das ist nur eine Vorschlagsliste fuer die Checkbox-Auswahl in der Web-App -
 die tatsaechlich aktive Liste steht immer in config/reality_shows.json.
-Ergaenzt keine Formate, die nicht auf RTL/VOX/Sat.1/ProSieben/RTL2/Kabel Eins
-oder im Streaming-Angebot RTL+ (scraper/sources/rtlplus.py) laufen.
+Ergaenzt nur Formate, die auf einem der Sender in
+scraper/sources/tvspielfilm.py (SENDER_SLUGS) oder im Streaming-Angebot RTL+
+(scraper/sources/rtlplus.py) laufen.
 """
 from __future__ import annotations
 
@@ -48,4 +49,10 @@ VORSCHLAEGE: list[dict] = [
     {"name": "Armes Deutschland", "aliases": []},
     {"name": "Diese Ochsenknechts", "aliases": []},
     {"name": "Bella Italia", "aliases": []},
+    {"name": "Hartz Rot Gold", "aliases": []},
+    {"name": "Zwischen Tüll und Tränen", "aliases": []},
+    {"name": "Mein Leben mit 300 kg", "aliases": []},
+    {"name": "My Strange Addiction", "aliases": []},
+    {"name": "Verpfuscht", "aliases": []},
+    {"name": "Die Ruhrpottwache", "aliases": []},
 ]

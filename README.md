@@ -1,8 +1,9 @@
 # Reality-TV Programmübersicht
 
-**RTL · VOX · Sat.1 · ProSieben · RTL2 · Kabel Eins · RTL+ (Streaming)**
+**RTL · VOX · Sat.1 · ProSieben · RTL2 · Kabel Eins · sixx · RTLup · VOXup ·
+Nitro · Pro7 Maxx · Sat.1 Gold · TLC · DMAX · RTL+ (Streaming)**
 
-Ein privates, lokales Tool. Es holt die Programmdaten der sechs Sender, sucht
+Ein privates, lokales Tool. Es holt die Programmdaten der 14 Sender, sucht
 darin deine Reality-TV-Formate heraus und zeigt sie in einer kleinen Web-App
 im Browser — als Vorschau auf die **nächste und übernächste Woche**.
 
@@ -431,10 +432,14 @@ deshalb gar nicht überschreiben.
 
 - `scraper/sources/rtl.py` — RTL + VOX direkt von rtl.de (nur ~6–7 Tage
   Vorschau)
-- `scraper/sources/tvspielfilm.py` — Aggregator, deckt alle sechs Sender bis
+- `scraper/sources/tvspielfilm.py` — Aggregator, deckt alle 14 Sender bis
   zu 14 Tage ab. Sat.1/ProSieben laufen inzwischen über Joyn, das selbst keine
-  brauchbare mehrtägige Programmübersicht mehr bietet; RTL2/Kabel Eins haben
-  gar keine eigene Quelle — für diese vier Sender ist das hier die einzige
+  brauchbare mehrtägige Programmübersicht mehr bietet; die übrigen Sender haben
+  gar keine eigene Quelle — für alle außer RTL und VOX ist das hier die einzige.
+  Je drei Sender werden gleichzeitig abgefragt, damit der Abruf trotz der
+  vielen Sender bei 1–2 Minuten bleibt. Ein weiterer Sender ist ein Eintrag in
+  `SENDER_SLUGS` (Kennung aus der Adresse seiner Programmseite auf
+  tvspielfilm.de) plus eine Farbe `.sender-<name>` in `webapp/static/style.css`
 - `scraper/sources/rtlplus.py` — Streaming-Start auf plus.rtl.de für Sendungen,
   die in keinem Fernsehprogramm stehen. Sucht die Namen aus deiner Liste in der
   öffentlichen Sitemap von RTL+ (Zwischenspeicher `data/rtlplus_katalog.json`,
