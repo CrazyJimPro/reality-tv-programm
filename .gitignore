@@ -3,6 +3,7 @@ data/*.db
 data/rtlplus_katalog.json
 data/folgen_cache.json
 data/tmdb_zuordnung.json
+data/tmdb_bilder.json
 logs/*.log
 __pycache__/
 *.pyc

@@ -158,6 +158,16 @@ def main() -> None:
         # den zwei Wochen, der Kasten zeigt dann das Startdatum
         kandidaten += [(e, STUFE_REALITY) for e in tmdb_ergebnis.entdeckungen]
     speichere_entdeckungen(kandidaten, db_pfad=PROJEKT_ROOT / "data" / "programm.db")
+
+    # Vorschaubilder fuer die Uebersicht (nur mit TMDB-Schluessel). Ein
+    # Fehler hier darf den Lauf nicht kippen - dann eben Platzhalter.
+    if tmdb_ergebnis is not None:
+        titel = {e.titel for e in gesamt} | {e.titel for e, _ in kandidaten}
+        titel |= {d["titel"] for d in tmdb_ergebnis.demnaechst}
+        try:
+            tmdb.bilder_ergaenzen(titel, heute)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Bilder von TMDB nicht geholt: %s", exc)
     logger.info("%d Ausstrahlungen mit Reality-/Doku-Soap-Genre fuer 'Neu entdeckt'", len(kandidaten))
 
     status = hole_quellen_status()

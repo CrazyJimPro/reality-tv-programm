@@ -130,6 +130,16 @@ z.B. `v1.4.10`; beim Start landet die Nummer auch in `logs/start.log`. Die
 neueste steht unter
 [Releases](https://github.com/CrazyJimPro/reality-tv-programm/releases).
 
+**Aufbau der Übersicht:** Oben stehen vier Reiter — **„Nächste Woche"**,
+**„Übernächste Woche"**, **„Demnächst"** (Staffelstarts danach) und **„Neu
+entdeckt"** (Formate, die noch nicht in deiner Liste stehen). Die Zahl am Reiter
+sagt, wie viele Einträge dort warten. Der Browser merkt sich, welcher Reiter
+zuletzt offen war. Daneben sitzen die Schalter für Wiederholungen und
+Gesehenes. Jede Sendung hat ein Vorschaubild, sofern ein
+[TMDB-Schlüssel](#streaming-starts-tmdb) eingetragen ist — sonst steht dort ein
+Feld in der Senderfarbe. Hell oder dunkel folgt der Systemeinstellung; der
+runde Knopf oben rechts schaltet um.
+
 **Zugriff von einem anderen Rechner im Netzwerk:** Läuft die App z.B. in einer
 VM, erreichst du sie auch über `http://<IP-der-VM>:5000` von einem anderen
 Gerät im selben Netzwerk — nicht nur über `localhost` auf der VM selbst. Ohne
@@ -236,23 +246,23 @@ Reality-TV sind, aber noch nicht in deiner Liste stehen.
 
 ## So geht's
 
-1. Auf der Übersicht, oberhalb von „Nächste Woche", steht der Kasten
-   **„Neu entdeckt: … Reality-Formate"**. Draufklicken klappt ihn auf.
-2. Zu jedem Titel siehst du Sender, Genre, wie oft er in den zwei Wochen läuft
-   und den nächsten Termin.
+1. Auf der Übersicht oben den Reiter **„Neu entdeckt"** anklicken. Die Zahl
+   daran sagt, wie viele Vorschläge es gerade gibt.
+2. Zu jedem Titel siehst du Bild, Sender, Genre, wie oft er in den zwei Wochen
+   läuft und den nächsten Termin.
 3. **„Hinzufügen"** nimmt die Sendung in deine Liste auf. Ihre Termine stehen
    **sofort** in der Übersicht — ohne Warten auf einen neuen Datenabruf, du
    kannst also mehrere hintereinander hinzufügen.
 4. **„Ausblenden"** schlägt einen Titel nicht mehr vor.
 
-Darunter gibt es einen zweiten, zugeklappten Kasten **„Weitere
+Darunter gibt es einen zugeklappten Abschnitt **„Weitere
 Doku-Soaps"** — Auswanderer-, Renovier-, Pfandleiher-Soaps und Ähnliches.
 Der ist bewusst getrennt, weil er deutlich mehr und gemischtere Treffer hat.
 
 ## Was du erwarten kannst
 
 - **Woran erkannt wird:** am Genre, das tvspielfilm.de zu jeder Sendung
-  vergibt. Im ersten Kasten landet alles mit „Reality", „Dating" oder
+  vergibt. In der Hauptliste landet alles mit „Reality", „Dating" oder
   „Kuppel" im Genre (z. B. „Realitysoap", „Datingshow"). Im zweiten alles mit
   „…soap" — ohne fiktionale Serien wie GZSZ und ohne gespielte Gerichts- und
   Ermittler-Formate (Barbara Salesch, K11), die sonst alles überdecken würden.
@@ -286,7 +296,7 @@ Läuft dieselbe Folge mehrmals, steht bei allen Terminen bis auf einen ein
 gestricheltes **„Wiederholung"**. Fährst du mit der Maus darüber, steht da,
 wann die Hauptausstrahlung läuft.
 
-Über der Übersicht gibt es zwei Schalter:
+Oben in der Leiste mit den Reitern gibt es zwei Schalter:
 
 - **„Wiederholungen ausblenden"** — zeigt jede Folge nur noch einmal
 - **„Gesehenes ausblenden"** — blendet abgehakte Folgen aus
@@ -329,7 +339,11 @@ kommenden Folgen mit Datum. Mit einem kostenlosen TMDB-Schlüssel zeigt die App:
 - **Starts, die in keinem Fernsehprogramm stehen**, direkt in der Wochenübersicht
   (Sender z. B. „Joyn" oder „Prime Video", statt Uhrzeit ein „—")
 - **Demnächst:** Staffelstarts deiner Sendungen in den drei Monaten nach den zwei
-  Wochen, ganz unten auf der Übersicht
+  Wochen, im gleichnamigen Reiter, mit Poster und „in … Tagen"
+- **Vorschaubilder** zu jeder Sendung. Sie lädt der Browser direkt von
+  themoviedb.org; die App merkt sich nur, welches Bild zu welchem Titel gehört
+  (`data/tmdb_bilder.json`). Findet sich kein passendes Bild, bleibt das Feld in
+  der Senderfarbe — lieber kein Bild als ein falsches
 - **Neu entdeckt:** zusätzlich kommende deutsche Reality-Formate bei Joyn, RTL+,
   Prime Video und Netflix
 
@@ -573,6 +587,7 @@ Alles unterhalb von `%USERPROFILE%\reality-tv-programm` bzw.
 | `data/folgen_cache.json` | Zwischenspeicher der Folgenangaben (darf gelöscht werden) |
 | `config/tmdb.json` | dein TMDB-Schlüssel (nicht in der Sicherung) |
 | `data/tmdb_zuordnung.json` | welcher Listenname zu welcher TMDB-Serie gehört (darf gelöscht werden) |
+| `data/tmdb_bilder.json` | welches TMDB-Bild zu welchem Sendungstitel gehört (darf gelöscht werden) |
 | `logs/start.log` | Meldungen des Startskripts |
 | `logs/webapp.log` | Meldungen der Web-App — **hier stehen Abstürze** |
 | `logs/scraper.log` | Protokoll der Datenabrufe |
@@ -672,13 +687,23 @@ Flask, erreichbar unter **Port 5000**:
   über der Übersicht steuert `webapp/static/uebersicht.js` (Stand im
   localStorage des Browsers)
 - `/entdeckung/hinzufuegen`, `/entdeckung/ausblenden`, `/entdeckung/einblenden`
-  (POST) — Kasten „Neu entdeckt". Die Kandidaten berechnet
+  (POST) — Reiter „Neu entdeckt". Die Kandidaten berechnet
   `scraper/entdecken.py` bei jedem Lauf aus dem ungefilterten Programm und legt
   sie samt Terminen in der Tabelle `entdeckungen` ab; abgeglichen mit der
   Sendungsliste wird erst beim Anzeigen. „Hinzufügen" kopiert die Termine von
   dort direkt in die Übersicht. Ausgeblendete Titel stehen unter
   `"ausgeblendet"` in `config/reality_shows.json`
 - `/beenden` (POST) — beendet die App vollständig
+
+Oberfläche (seit v2.0.0): Glas-Look wie die Schwester-App streaming-info, alles
+in `webapp/static/style.css` über CSS-Variablen für hell und dunkel
+(`:root[data-theme]` bzw. Systemeinstellung). Die vier Reiter sind vier
+`.panel`-Abschnitte in `index.html`; ohne JavaScript stehen sie untereinander,
+`uebersicht.js` blendet jeweils einen ein (Anker `#entdeckungen` /
+`#demnaechst` öffnen den passenden Reiter direkt). Vorschaubilder:
+`tmdb.bilder_ergaenzen()` sucht sie am Ende jedes Laufs für alle Titel aus
+Übersicht, Vorschlägen und „Demnächst" (nur mit Schlüssel), `tmdb.bild_url()`
+baut beim Anzeigen die Adresse auf image.tmdb.org daraus
 
 `start_versteckt.bat` / `start_versteckt.vbs` (nur Windows) sind das Ziel der
 Desktop-Verknüpfung: Sie rufen `start.bat` ohne sichtbares Konsolenfenster auf

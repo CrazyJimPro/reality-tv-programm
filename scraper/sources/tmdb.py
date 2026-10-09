@@ -368,3 +368,99 @@ def hole(shows: list[dict], heute: date, vorschau_tage: int) -> Ergebnis | None:
         len(ergebnis.entdeckungen),
     )
     return ergebnis
+
+
+# --- Bilder fuer die Uebersicht (seit v2.0.0) -------------------------------
+# Je Sendungstitel ein Breitbild (Vorschau in der Liste) und ein Poster
+# ("Demnaechst"). Die Uebersicht laedt die Bilder direkt von image.tmdb.org;
+# gespeichert wird nur der Pfad. Ohne Treffer zeigt sie einen Platzhalter in
+# der Senderfarbe - ein falsches Bild waere schlimmer als keins.
+BILDER_PFAD = PROJEKT_ROOT / "data" / "tmdb_bilder.json"
+BILD_BASIS = "https://image.tmdb.org/t/p/"
+
+
+def _suche_bild(tmdb: _Tmdb, titel: str) -> int | None:
+    """Wie _suche, aber auch fuer auslaendische Formate auf den Spartensendern
+    ("Storage Wars", "My Strange Addiction") - dort dann nur bei exakt
+    gleichem Namen, sonst landet eine beliebige gleichnamige Serie im Bild."""
+    tmdb_id = _suche(tmdb, titel)
+    if tmdb_id:
+        return tmdb_id
+    gesucht = _ohne_satzzeichen(titel)
+    for serie in tmdb.get("search/tv", query=titel).get("results", [])[:10]:
+        if gesucht in {_ohne_satzzeichen(serie.get(feld) or "") for feld in ("name", "original_name")}:
+            return serie["id"]
+    # Die TMDB-Suche verzeiht keine zusaetzlichen Woerter: "Goodbye
+    # Deutschland! Die Auswanderer" findet nichts, die Serie heisst dort
+    # "Goodbye Deutschland!". Also noch einmal mit dem Teil vor dem Zusatz -
+    # aber nur deutschsprachige Treffer, deren Name ganz im Titel steckt.
+    for trenner in (" – ", " - ", ": ", "! "):
+        if trenner not in titel:
+            continue
+        kurz = titel.split(trenner)[0]
+        for serie in tmdb.get("search/tv", query=kurz).get("results", [])[:10]:
+            name = _ohne_satzzeichen(serie.get("name") or "")
+            if name and _ist_deutschsprachig(serie) and f" {name} " in f" {gesucht} ":
+                return serie["id"]
+    return None
+
+
+def lade_bilder() -> dict:
+    try:
+        return json.loads(BILDER_PFAD.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def bild_url(bilder: dict, titel: str, art: str = "backdrop") -> str | None:
+    """art: "backdrop" (Breitbild, w300) oder "poster" (Hochformat, w342)."""
+    eintrag = bilder.get(normalisiert(titel)) or {}
+    pfad = eintrag.get(art) or (eintrag.get("poster") if art == "backdrop" else eintrag.get("backdrop"))
+    if not pfad:
+        return None
+    return f"{BILD_BASIS}{'w300' if art == 'backdrop' else 'w342'}{pfad}"
+
+
+def bilder_ergaenzen(titel: set[str], heute: date) -> None:
+    """Sucht fuer neue Titel die Bilder; bekannte bleiben ZUORDNUNG_TAGE lang,
+    erfolglose Suchen ZUORDNUNG_NICHTS_TAGE lang im Zwischenspeicher."""
+    schluessel = lade_schluessel()
+    if not schluessel:
+        return
+    tmdb = _Tmdb(schluessel)
+    bilder = lade_bilder()
+
+    def frisch(eintrag: dict | None) -> bool:
+        if not eintrag:
+            return False
+        alter = (heute - date.fromisoformat(eintrag["am"])).days
+        return alter < (ZUORDNUNG_TAGE if eintrag.get("id") else ZUORDNUNG_NICHTS_TAGE)
+
+    offen = sorted({t for t in titel if t.strip() and not frisch(bilder.get(normalisiert(t)))})
+
+    def _hole(t: str) -> tuple[str, dict]:
+        try:
+            tmdb_id = _suche_bild(tmdb, t)
+            serie = tmdb.get(f"tv/{tmdb_id}") if tmdb_id else {}
+        except ScraperFehler as exc:
+            logger.warning("%s: kein Bild fuer %s (%s)", QUELLE, t, exc)
+            return t, {}
+        return t, {
+            "id": tmdb_id,
+            "backdrop": serie.get("backdrop_path"),
+            "poster": serie.get("poster_path"),
+            "am": heute.isoformat(),
+        }
+
+    with ThreadPoolExecutor(max_workers=GLEICHZEITIG) as pool:
+        for t, eintrag in pool.map(_hole, offen):
+            if eintrag:
+                bilder[normalisiert(t)] = eintrag
+
+    try:
+        BILDER_PFAD.parent.mkdir(parents=True, exist_ok=True)
+        BILDER_PFAD.write_text(json.dumps(bilder, ensure_ascii=False, indent=1), encoding="utf-8")
+    except OSError as exc:
+        logger.warning("TMDB-Bilder nicht schreibbar (%s)", exc)
+    if offen:
+        logger.info("%s: Bilder fuer %d neue Titel gesucht", QUELLE, len(offen))

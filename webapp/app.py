@@ -66,6 +66,7 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 VORSCHAU_TAGE = 14
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
 
 # Ab wann gelten die Daten einer Quelle als veraltet (Warnhinweis in der
 # Uebersicht)? Im Normalfall - App starten, Daten werden geholt - wird das
@@ -351,6 +352,11 @@ def index():
         ausgeblendet=config.get("ausgeblendet", []),
     )
 
+    bilder = tmdb.lade_bilder()
+    demnaechst = [d for d in hole_demnaechst(heute, db_pfad=DB_PFAD) if d["datum"] > uebernaechste_woche_bis.isoformat()]
+    for d in demnaechst:
+        d["in_tagen"] = (date.fromisoformat(d["datum"]) - heute).days
+
     return render_template(
         "index.html",
         naechste_woche=naechste_woche,
@@ -367,8 +373,12 @@ def index():
         hinzugefuegt_termine=request.args.get("termine"),
         # Staffelstarts nach den zwei Wochen; was inzwischen hineingerutscht
         # ist, steht schon in der Wochenansicht
-        demnaechst=[d for d in hole_demnaechst(heute, db_pfad=DB_PFAD) if d["datum"] > uebernaechste_woche_bis.isoformat()],
+        demnaechst=demnaechst,
         tmdb_aktiv=tmdb.lade_schluessel() is not None,
+        # Vorschaubilder von TMDB (data/tmdb_bilder.json, vom Datenabruf
+        # gefuellt); None = Platzhalter in der Senderfarbe
+        bild=lambda titel, art="backdrop": tmdb.bild_url(bilder, titel, art),
+        heute_iso=heute.isoformat(),
     )
 
 
@@ -389,6 +399,20 @@ def _termin_filter(zeitpunkt: datetime | None) -> str:
     if zeitpunkt is None:
         return "heute schon gelaufen"
     return f"{WOCHENTAGE_KURZ[zeitpunkt.weekday()]} {zeitpunkt:%d.%m.}, {zeitpunkt:%H:%M}"
+
+
+@app.template_filter("langtag")
+def _langtag_filter(wert: date | str) -> str:
+    """"Freitag, 9. Oktober" - fuer die Tagesueberschriften."""
+    if isinstance(wert, str):
+        wert = date.fromisoformat(wert)
+    return f"{WOCHENTAGE[wert.weekday()]}, {wert.day}. {MONATE[wert.month - 1]}"
+
+
+@app.template_filter("senderklasse")
+def _senderklasse_filter(sender: str) -> str:
+    """CSS-Klasse fuer die Senderfarbe: "Sat.1 Gold" -> "sender-sat1gold"."""
+    return "sender-" + sender.lower().replace(".", "").replace(" ", "").replace("+", "plus")
 
 
 @app.template_filter("tag")

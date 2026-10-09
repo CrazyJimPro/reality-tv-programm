@@ -1,139 +1,548 @@
+/* Glas-Look (v2.0.0) - bewusst dieselbe Optik wie die Schwester-App
+   streaming-info: Verlaufshintergrund, halbtransparente Flaechen mit
+   Unschaerfe, Pillenknoepfe, Schrift Manrope, Akzentverlauf Tuerkis -> Violett.
+   Die Farbwahl haengt wie bisher an :root[data-theme] (Umschalter,
+   webapp/static/theme.js) bzw. an der Systemeinstellung. */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
 :root {
   color-scheme: light dark;
-  --bg: #f5f5f7;
-  --fg: #1a1a1a;
-  --card-bg: #ffffff;
-  --border: #e0e0e0;
-  --muted: #6b6b6b;
-  --accent: #d81f26;
-  /* Linkfarbe: ohne eigene Regel nahm der Browser sein Standardblau, das im
-     Dunkelmodus auf dunklem Grund kaum zu lesen war. */
-  --link: #0b57d0;
+  --page-bg:
+    radial-gradient(1100px 600px at 12% -8%, rgba(45,212,191,0.16), transparent 60%),
+    radial-gradient(900px 650px at 108% 8%, rgba(192,38,211,0.13), transparent 55%),
+    radial-gradient(900px 850px at 50% 115%, rgba(99,102,241,0.14), transparent 60%),
+    linear-gradient(160deg, #f8fafc 0%, #eef2ff 55%, #fdf2f8 100%);
+  --fg: #15172b;
+  --muted: rgba(21,23,43,0.62);
+  --glas: rgba(255,255,255,0.62);
+  --glas-rand: rgba(255,255,255,0.85);
+  --schatten: 0 8px 28px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+  --blur: 22px;
+  --flaeche: rgba(15,23,42,0.05);
+  --flaeche-rand: rgba(15,23,42,0.14);
+  --hover: rgba(15,23,42,0.04);
+  --link: #0e7490;
+  --folge-bg: rgba(244,63,94,0.12);
+  --folge-fg: #be123c;
+  --aktiv-bg: rgba(14,116,144,0.10);
+  --aktiv-rand: rgba(14,116,144,0.45);
+  --ok: #15803d;
+  --ok-fg: #15803d;
+  --fehler: #b3261e;
+  --warnung: #a35a00;
+  /* Theme-unabhaengig, beide Designs teilen sich denselben Akzent */
+  --akzent-verlauf: linear-gradient(135deg, #22d3ee, #a855f7);
+  --akzent-tinte: #0b1020;
+  --akzent-schatten: 0 6px 16px rgba(168,85,247,0.3);
+  --neu-verlauf: linear-gradient(135deg, #f472b6, #f43f5e);
+  --accent: #a855f7;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #16161a;
-    --fg: #eaeaea;
-    --card-bg: #222226;
-    --border: #333338;
-    --muted: #9a9a9a;
-    --link: #8ab4f8;
+    --page-bg:
+      radial-gradient(1100px 600px at 12% -8%, rgba(45,212,191,0.32), transparent 60%),
+      radial-gradient(900px 650px at 108% 8%, rgba(192,38,211,0.30), transparent 55%),
+      radial-gradient(900px 850px at 50% 115%, rgba(99,102,241,0.30), transparent 60%),
+      linear-gradient(160deg, #0b1020 0%, #140f2b 45%, #1c1033 100%);
+    --fg: #f4f3ff;
+    --muted: rgba(244,243,255,0.62);
+    --glas: rgba(255,255,255,0.07);
+    --glas-rand: rgba(255,255,255,0.14);
+    --schatten: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+    --blur: 24px;
+    --flaeche: rgba(255,255,255,0.08);
+    --flaeche-rand: rgba(255,255,255,0.18);
+    --hover: rgba(255,255,255,0.06);
+    --link: #67e8f9;
+    --folge-bg: rgba(244,63,94,0.18);
+    --folge-fg: #fda4af;
+    --aktiv-bg: rgba(34,211,238,0.16);
+    --aktiv-rand: rgba(34,211,238,0.55);
+    --ok-fg: #34d399;
+    --fehler: #fca5a5;
+    --warnung: #fbbf24;
   }
 }
 
-/* Manueller Umschalter (webapp/static/theme.js) gewinnt in beide Richtungen
-   gegen die Systemeinstellung. */
 :root[data-theme="dark"] {
-  --bg: #16161a;
-  --fg: #eaeaea;
-  --card-bg: #222226;
-  --border: #333338;
-  --muted: #9a9a9a;
-  --link: #8ab4f8;
+  --page-bg:
+    radial-gradient(1100px 600px at 12% -8%, rgba(45,212,191,0.32), transparent 60%),
+    radial-gradient(900px 650px at 108% 8%, rgba(192,38,211,0.30), transparent 55%),
+    radial-gradient(900px 850px at 50% 115%, rgba(99,102,241,0.30), transparent 60%),
+    linear-gradient(160deg, #0b1020 0%, #140f2b 45%, #1c1033 100%);
+  --fg: #f4f3ff;
+  --muted: rgba(244,243,255,0.62);
+  --glas: rgba(255,255,255,0.07);
+  --glas-rand: rgba(255,255,255,0.14);
+  --schatten: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+  --blur: 24px;
+  --flaeche: rgba(255,255,255,0.08);
+  --flaeche-rand: rgba(255,255,255,0.18);
+  --hover: rgba(255,255,255,0.06);
+  --link: #67e8f9;
+  --folge-bg: rgba(244,63,94,0.18);
+  --folge-fg: #fda4af;
+  --aktiv-bg: rgba(34,211,238,0.16);
+  --aktiv-rand: rgba(34,211,238,0.55);
+  --ok-fg: #34d399;
+  --fehler: #fca5a5;
+  --warnung: #fbbf24;
 }
 
+/* Der helle Block steht explizit da, damit der Umschalter auch gegen ein
+   dunkles System gewinnt */
 :root[data-theme="light"] {
-  --bg: #f5f5f7;
-  --fg: #1a1a1a;
-  --card-bg: #ffffff;
-  --border: #e0e0e0;
-  --muted: #6b6b6b;
-  --link: #0b57d0;
+  --page-bg:
+    radial-gradient(1100px 600px at 12% -8%, rgba(45,212,191,0.16), transparent 60%),
+    radial-gradient(900px 650px at 108% 8%, rgba(192,38,211,0.13), transparent 55%),
+    radial-gradient(900px 850px at 50% 115%, rgba(99,102,241,0.14), transparent 60%),
+    linear-gradient(160deg, #f8fafc 0%, #eef2ff 55%, #fdf2f8 100%);
+  --fg: #15172b;
+  --muted: rgba(21,23,43,0.62);
+  --glas: rgba(255,255,255,0.62);
+  --glas-rand: rgba(255,255,255,0.85);
+  --schatten: 0 8px 28px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+  --blur: 22px;
+  --flaeche: rgba(15,23,42,0.05);
+  --flaeche-rand: rgba(15,23,42,0.14);
+  --hover: rgba(15,23,42,0.04);
+  --link: #0e7490;
+  --folge-bg: rgba(244,63,94,0.12);
+  --folge-fg: #be123c;
+  --aktiv-bg: rgba(14,116,144,0.10);
+  --aktiv-rand: rgba(14,116,144,0.45);
+  --ok-fg: #15803d;
+  --fehler: #b3261e;
+  --warnung: #a35a00;
 }
 
 * { box-sizing: border-box; }
 
 body {
-  margin: 0;
-  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  background: var(--bg);
+  margin: 0 auto;
+  max-width: 1400px;
+  font-family: 'Manrope', -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--page-bg);
+  background-attachment: fixed;
   color: var(--fg);
   padding: 1.5rem;
+  min-height: 100vh;
+}
+
+/* Hintergrund ueber die volle Fensterbreite, auch neben dem begrenzten body */
+html { background: var(--page-bg); background-attachment: fixed; min-height: 100%; }
+
+a { color: var(--link); }
+
+code {
+  background: var(--flaeche);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+
+/* --- Glasflaechen ------------------------------------------------------- */
+header,
+.reiter-leiste,
+.tag,
+.neue-show,
+.show-checkbox,
+.status-chip {
+  background: var(--glas);
+  border: 1px solid var(--glas-rand);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  box-shadow: var(--schatten);
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-radius: 20px;
+  padding: 1.1rem 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 header h1 {
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.2rem 0;
   font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .subtitle {
   color: var(--muted);
-  margin: 0 0 1rem 0;
+  margin: 0;
+  font-size: 0.92rem;
 }
+
+.version {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  border: 1px solid var(--flaeche-rand);
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+.nav-back {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* "zurueck zur Uebersicht" in den Einstellungen */
+.nav-back a:not(.verwalten-button) {
+  color: var(--link);
+  font-size: 1.02rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nav-back a:not(.verwalten-button):hover,
+.nav-back a:not(.verwalten-button):focus-visible {
+  text-decoration: underline;
+}
+
+/* --- Knoepfe ------------------------------------------------------------ */
+.verwalten-button,
+.speichern-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  background: var(--akzent-verlauf);
+  color: var(--akzent-tinte);
+  text-decoration: none;
+  font: 700 0.95rem 'Manrope', sans-serif;
+  padding: 0.6rem 1.3rem;
+  border: none;
+  border-radius: 999px;
+  box-shadow: var(--akzent-schatten);
+  cursor: pointer;
+}
+
+.verwalten-button:hover,
+.speichern-button:hover { filter: brightness(1.08); }
+
+.aktualisieren-form,
+.beenden-form { margin: 0; }
+
+.aktualisieren-form button,
+.beenden-form button,
+.hinzufuegen-button,
+.ausblenden-button,
+.theme-toggle,
+.reiter,
+.gespeichert-hinweis button {
+  min-height: 44px;
+  font: 600 0.92rem 'Manrope', sans-serif;
+  color: var(--fg);
+  background: var(--flaeche);
+  border: 1px solid var(--flaeche-rand);
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aktualisieren-form button:hover,
+.beenden-form button:hover,
+.ausblenden-button:hover,
+.theme-toggle:hover,
+.reiter:hover { border-color: var(--aktiv-rand); }
+
+.aktualisieren-form button:disabled { opacity: 0.6; cursor: wait; }
+
+.hinzufuegen-button {
+  background: var(--akzent-verlauf);
+  color: var(--akzent-tinte);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.hinzufuegen-button:hover { filter: brightness(1.08); }
+
+a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoration: none; }
+
+.theme-toggle {
+  width: 44px;
+  padding: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* --- Hinweise ----------------------------------------------------------- */
+.gespeichert-hinweis,
+.lauf-hinweis,
+.fehler-hinweis {
+  border-radius: 16px;
+  padding: 0.75rem 1.1rem;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+  border: 1px solid;
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+}
+
+.gespeichert-hinweis { background: rgba(52,211,153,0.14); border-color: rgba(52,211,153,0.45); }
+.lauf-hinweis { background: rgba(251,191,36,0.16); border-color: rgba(251,191,36,0.5); }
+.fehler-hinweis { background: rgba(244,63,94,0.14); border-color: rgba(244,63,94,0.5); }
+
+.gespeichert-hinweis button { min-height: 36px; padding: 0.3rem 0.9rem; margin-left: 0.4rem; }
 
 .quellen-status {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .status-chip {
   font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  box-shadow: none;
 }
 
-.status-ok { color: #1a7a3a; }
-.status-fehler { color: #b3261e; }
+.status-ok { color: var(--ok-fg); }
+.status-fehler { color: var(--fehler); }
 /* Quelle hat zwar irgendwann funktioniert, der letzte Erfolg ist aber
-   laenger her als webapp/app.py:VERALTET_AB_STUNDEN - sonst waere der
-   Chip nach dem ersten Erfolg fuer immer gruen. */
-.status-veraltet { color: #a35a00; border-color: #a35a00; }
+   laenger her als webapp/app.py:VERALTET_AB_STUNDEN */
+.status-veraltet { color: var(--warnung); border-color: var(--warnung); }
 
-.woche h2 {
-  margin-top: 2rem;
-  border-bottom: 2px solid var(--accent);
-  padding-bottom: 0.25rem;
-}
-
-.tag {
-  margin: 1rem 0;
-}
-
-.tag h3 {
-  font-size: 1rem;
+.hinweis {
   color: var(--muted);
-  margin-bottom: 0.4rem;
+  font-size: 0.88rem;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.5;
 }
 
-.sendungen {
+/* --- Reiter ------------------------------------------------------------- */
+.reiter-leiste {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  border-radius: 999px;
+  padding: 6px;
+  margin-bottom: 1.25rem;
+}
+
+.reiter-gruppe { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.reiter {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.2rem;
+}
+
+.reiter.aktiv {
+  background: var(--aktiv-bg);
+  border-color: var(--aktiv-rand);
+  color: var(--fg);
+}
+
+.zahl {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--neu-verlauf);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.anzeige-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  padding: 0 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.anzeige-filter label { display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; min-height: 32px; }
+
+/* Ohne JavaScript stehen alle Bereiche untereinander, mit Ueberschrift */
+.panel { margin-bottom: 1.5rem; }
+.panel-titel { margin: 1.5rem 0 0.75rem; font-size: 1.3rem; font-weight: 800; }
+.mit-reitern .panel { display: none; }
+.mit-reitern .panel.aktiv { display: block; }
+.mit-reitern .panel-titel { display: none; }
+
+/* --- Tage und Sendungen ------------------------------------------------- */
+.tag {
+  border-radius: 22px;
+  padding: 1rem 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.tag-leer { padding-block: 0.75rem; }
+
+.tag-titel {
+  margin: 0 0 0.4rem;
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tag > .hinweis,
+.tag > .keine-sendung { padding: 0 0.75rem; }
+
+.sendungen,
+.entdeckt-liste,
+.start-liste {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 2px;
 }
 
 .sendung {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
   display: grid;
-  grid-template-columns: 4.5rem 6rem 1fr auto;
+  grid-template-columns: 150px 74px minmax(0, 1fr) auto;
+  gap: 1.1rem;
   align-items: center;
-  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 16px;
 }
 
-.uhrzeit { font-weight: 600; }
+.sendung:hover,
+.entdeckt-eintrag:hover { background: var(--hover); }
 
-.sender {
-  font-size: 0.75rem;
+.vorschau {
+  width: 150px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+  background: var(--flaeche);
+}
+
+/* Kein Bild (kein TMDB-Schluessel oder nichts gefunden): Feld in der
+   Senderfarbe, die .sender-* Klassen unten liefern Hintergrund und Schrift */
+.vorschau-platz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.vorschau-poster { width: 120px; height: 180px; border-radius: 14px; }
+
+.zeitblock { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
+
+.uhrzeit { font-size: 1.1rem; font-weight: 800; }
+
+.text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+
+.titel { font-size: 1.02rem; font-weight: 700; }
+
+.beschreibung {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.marken {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.staffel-folge,
+.wiederholung,
+.konfidenz,
+.staffelstart {
+  font-size: 0.72rem;
   font-weight: 700;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+}
+
+.staffel-folge { background: var(--folge-bg); color: var(--folge-fg); }
+.wiederholung { color: var(--muted); border: 1px dashed var(--muted); cursor: help; }
+.konfidenz { color: var(--muted); border: 1px solid var(--flaeche-rand); }
+.staffelstart { background: var(--neu-verlauf); color: #fff; }
+
+.gesehen-knopf {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--flaeche-rand);
+  background: transparent;
+  color: var(--muted);
+  font: 700 1rem 'Manrope', sans-serif;
+  cursor: pointer;
+}
+
+.gesehen-knopf:hover { border-color: var(--ok-fg); color: var(--ok-fg); }
+
+.ist-gesehen .gesehen-knopf {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+
+/* Gesehenes bleibt sichtbar, tritt aber zurueck */
+.sendung.ist-gesehen .vorschau,
+.sendung.ist-gesehen .zeitblock,
+.sendung.ist-gesehen .text { opacity: 0.5; }
+
+.ohne-wiederholungen .sendung[data-wiederholung="1"],
+.ohne-gesehene .sendung.ist-gesehen { display: none; }
+
+.keine-sendung {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0.25rem 0;
+}
+
+.alles-gefiltert { display: none; }
+.tag.alles-ausgeblendet .alles-gefiltert { display: block; }
+
+/* --- Sender ------------------------------------------------------------- */
+.sender {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+  border-radius: 6px;
   text-align: center;
-  background: #ddd;
+  white-space: nowrap;
+  background: var(--flaeche);
 }
 
 .sender-rtl { background: #d81f26; color: white; }
-.sender-vox { background: #ffffff; color: #000; border: 1px solid #000; }
-.sender-sat1 { background: #ffcc00; color: #000; }
+.sender-vox { background: #ffffff; color: #000; box-shadow: inset 0 0 0 1px #000; }
+.sender-sat1 { background: #ffcc00; color: #3a2e00; }
 .sender-prosieben { background: #e6001f; color: white; }
 .sender-rtl2 { background: #00549e; color: white; }
 .sender-kabeleins { background: #f39200; color: #000; }
@@ -147,483 +556,144 @@ header h1 {
 .sender-tlc { background: #00a0dc; color: white; }
 .sender-dmax { background: #4a4a4a; color: #ffd200; }
 /* Streamingdienste (Termine laut TMDB) */
-.sender-joyn { background: #000; color: #fff; border: 1px solid #555; }
-.sender-primevideo { background: #00a8e1; color: #000; }
+.sender-joyn { background: #000; color: #fff; box-shadow: inset 0 0 0 1px #555; }
+.sender-primevideo { background: #00a8e1; color: #002838; }
 .sender-netflix { background: #e50914; color: white; }
 .sender-tmdb { background: #0d253f; color: #01b4e4; }
 
-.titel { font-weight: 500; }
-
-.konfidenz {
-  font-size: 0.7rem;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  white-space: nowrap;
-}
-
-.staffel-folge {
-  font-size: 0.75rem;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  border-radius: 999px;
-  padding: 0.1rem 0.55rem;
-  white-space: nowrap;
-  font-weight: 600;
-}
-
-.beschreibung {
-  grid-column: 1 / -1;
-  margin: 0.3rem 0 0 0;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.keine-sendung {
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-style: italic;
-}
-
-footer {
-  margin-top: 2.5rem;
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-footer code {
-  background: var(--card-bg);
-  padding: 0.1rem 0.3rem;
-  border-radius: 4px;
-}
-
-.nav-back {
-  margin-top: 1rem;
-  display: flex;
+/* --- Demnaechst --------------------------------------------------------- */
+.start-karte {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 1.25rem;
   align-items: center;
-  gap: 0.8rem;
-  flex-wrap: wrap;
+  padding: 0.75rem;
+  border-radius: 18px;
 }
 
-/* "zurueck zur Uebersicht": etwas groesser und in einer Farbe, die auch auf
-   dunklem Grund gut lesbar ist. */
-.nav-back a:not(.verwalten-button) {
-  color: var(--link);
-  font-size: 1.05rem;
-  font-weight: 500;
-  text-decoration: none;
+.start-karte:hover { background: var(--hover); }
+.start-text { display: flex; flex-direction: column; gap: 0.45rem; min-width: 0; }
+.start-datum { font-weight: 800; color: var(--link); }
+.start-titel { font-size: 1.35rem; font-weight: 800; }
+.marken-links { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+
+/* --- Neu entdeckt ------------------------------------------------------- */
+.entdeckt-eintrag {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  gap: 1.1rem;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border-radius: 16px;
 }
 
-.nav-back a:not(.verwalten-button):hover,
-.nav-back a:not(.verwalten-button):focus-visible {
-  text-decoration: underline;
-}
+/* Einstellungen: "Ausgeblendete Vorschlaege" ohne Bild */
+.entdeckt-eintrag:not(:has(.vorschau)) { grid-template-columns: minmax(0, 1fr) auto; }
 
-.theme-toggle {
-  margin-left: auto;
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--fg);
-  border-radius: 999px;
-  width: 2.6rem;
-  height: 2.6rem;
-  padding: 0;
-  font-size: 1.5rem;
-  line-height: 1;
+.entdeckt-eintrag form { margin: 0; }
+.entdeckt-info { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.entdeckt-details { font-size: 0.82rem; color: var(--muted); }
+.entdeckt-knoepfe { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+
+details.entdeckt-kasten > summary {
   cursor: pointer;
+  padding: 0.25rem 0.75rem 0.5rem;
+  font-weight: 800;
 }
 
-.theme-toggle:hover {
-  border-color: var(--accent);
-}
+details.entdeckt-kasten > .hinweis { padding: 0 0.75rem; }
 
-.verwalten-button {
-  display: inline-block;
-  background: var(--accent);
-  color: white;
-  text-decoration: none;
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 0.6rem 1.3rem;
-  border-radius: 8px;
-}
-
-.verwalten-button:hover {
-  opacity: 0.9;
-}
-
-.aktualisieren-form {
-  margin: 0;
-}
-
-.aktualisieren-form button {
-  background: none;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  border-radius: 8px;
-  padding: 0.6rem 1.1rem;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.aktualisieren-form button:hover {
-  background: var(--accent);
-  color: white;
-}
-
-.aktualisieren-form button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-/* Versionsanzeige in der Kopfzeile - damit man sieht, welcher Stand laeuft
-   (kommt aus der Datei VERSION, die das Selbst-Update mit auffrischt). */
-.version {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: normal;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.05rem 0.5rem;
-  margin-left: 0.35rem;
-  vertical-align: middle;
-}
-
-.beenden-form {
-  margin: 0;
-}
-
-.beenden-form button {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  border-radius: 8px;
-  padding: 0.6rem 1.1rem;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.beenden-form button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* Laufender Datenabruf bzw. fehlgeschlagener Lauf - frueher wurde immer
-   nur Erfolg gemeldet, egal wie der Lauf ausging. */
-.lauf-hinweis {
-  background: #8a6d00;
-  color: white;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  display: inline-block;
-  margin-bottom: 1rem;
-}
-
-.fehler-hinweis {
-  background: #b3261e;
-  color: white;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  display: inline-block;
-  margin-bottom: 1rem;
-}
-
-.fehler-hinweis code {
-  background: rgba(255, 255, 255, 0.18);
-  padding: 0 0.25rem;
-  border-radius: 4px;
-}
-
-.gespeichert-hinweis {
-  background: #1a7a3a;
-  color: white;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  display: inline-block;
-  margin-bottom: 1rem;
-}
-
+/* --- Einstellungen ------------------------------------------------------ */
 .show-liste {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 0.5rem 1rem;
-  margin: 1.5rem 0;
+  gap: 0.5rem 0.75rem;
+  margin: 1.25rem 0;
 }
 
 .show-checkbox {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.5rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.5rem 0.7rem;
+  gap: 0.55rem;
+  border-radius: 14px;
+  padding: 0.6rem 0.8rem;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+  box-shadow: none;
 }
 
-.show-checkbox input {
-  flex-shrink: 0;
-}
+.show-checkbox input { flex-shrink: 0; }
 
-.show-aliases {
-  color: var(--muted);
-  font-size: 0.75rem;
-}
+.show-aliases { color: var(--muted); font-size: 0.75rem; }
 
 .neue-show {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
+  margin-top: 1.25rem;
+  padding: 1.1rem 1.4rem;
+  border-radius: 20px;
 }
 
-.neue-show h2 {
-  font-size: 1.1rem;
-  margin-bottom: 0.3rem;
-}
+.neue-show h2 { font-size: 1.1rem; font-weight: 800; margin: 0 0 0.4rem; }
 
-.hinweis {
-  color: var(--muted);
-  font-size: 0.85rem;
-  margin-top: 0;
-}
-
-.neue-show-felder {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
+.neue-show-felder { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 
 .neue-show-felder input {
   flex: 1;
   min-width: 220px;
-  padding: 0.5rem 0.7rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--card-bg);
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--flaeche-rand);
+  background: var(--flaeche);
   color: var(--fg);
-  font-size: 0.9rem;
+  font: 500 0.92rem 'Manrope', sans-serif;
 }
 
-.hinzufuegen-button {
-  padding: 0.5rem 1.2rem;
-  border-radius: 6px;
-  border: 1px solid var(--accent);
-  background: none;
-  color: var(--accent);
-  font-size: 0.9rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
+.speichern-button { margin-top: 1.25rem; font-size: 1rem; }
 
-.hinzufuegen-button:hover {
-  background: var(--accent);
-  color: white;
-}
-
-.speichern-button {
-  margin-top: 1.5rem;
-  padding: 0.6rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  background: var(--accent);
-  color: white;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.speichern-button:hover {
-  opacity: 0.9;
-}
-
-/* Datei-Auswahl beim Einspielen einer Sicherung. */
+/* Datei-Auswahl beim Einspielen einer Sicherung */
 input[type="file"] {
   display: block;
   margin-bottom: 0.8rem;
   color: inherit;
   max-width: 30rem;
+  font-family: inherit;
 }
 
-/* Knopf-Optik auch fuer den Download-Link "Sicherung erstellen". */
-a.hinzufuegen-button {
-  display: inline-block;
-  text-decoration: none;
-}
-
-/* Kasten "Neu entdeckt" (scraper/entdecken.py) */
-.entdeckungen {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
-}
-
-.entdeckt-kasten {
-  background: var(--card-bg);
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-}
-
-.entdeckt-soap {
-  border-color: var(--border);
-}
-
-.entdeckt-kasten summary {
-  cursor: pointer;
-}
-
-.entdeckt-kasten[open] summary {
-  margin-bottom: 0.5rem;
-}
-
-.entdeckt-liste {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.entdeckt-eintrag {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--border);
-}
-
-.entdeckt-eintrag form {
-  margin: 0;
-}
-
-.entdeckt-info {
-  /* Auf schmalen Bildschirmen rutschen die Knoepfe in eine eigene Zeile,
-     statt den Titel auf ein paar Zeichen Breite zusammenzudruecken. */
-  flex: 1 1 16rem;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.entdeckt-details {
+footer {
+  margin-top: 2rem;
+  color: var(--muted);
   font-size: 0.8rem;
-  color: var(--muted);
+  line-height: 1.6;
 }
 
-.entdeckt-details .sender {
-  display: inline-block;
-  font-size: 0.65rem;
-  padding: 0.05rem 0.4rem;
-}
+/* --- Handybreite -------------------------------------------------------- */
+@media (max-width: 700px) {
+  body { padding: 1rem; }
 
-.ausblenden-button {
-  padding: 0.5rem 0.9rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--muted);
-  font-size: 0.9rem;
-  cursor: pointer;
-}
+  header { padding: 1rem 1.1rem; }
 
-.ausblenden-button:hover {
-  border-color: var(--fg);
-  color: var(--fg);
-}
+  .reiter-leiste { border-radius: 20px; }
+  .reiter { padding: 0.5rem 0.85rem; }
+  .anzeige-filter { padding: 0 0.5rem 0.25rem; }
 
-/* Kennzeichen, Quellenhinweis und Gesehen-Knopf rechts in der Zeile */
-.marken {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.wiederholung {
-  font-size: 0.7rem;
-  color: var(--muted);
-  border: 1px dashed var(--muted);
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  white-space: nowrap;
-  cursor: help;
-}
-
-.gesehen-knopf {
-  width: 1.9rem;
-  height: 1.9rem;
-  padding: 0;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.gesehen-knopf:hover {
-  border-color: #1a7a3a;
-  color: #1a7a3a;
-}
-
-.ist-gesehen .gesehen-knopf {
-  background: #1a7a3a;
-  border-color: #1a7a3a;
-  color: white;
-}
-
-/* Gesehenes bleibt sichtbar, tritt aber zurueck */
-.sendung.ist-gesehen .uhrzeit,
-.sendung.ist-gesehen .titel,
-.sendung.ist-gesehen .beschreibung {
-  opacity: 0.55;
-}
-
-.anzeige-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin: 1.5rem 0 0 0;
-  font-size: 0.95rem;
-}
-
-.anzeige-filter label {
-  cursor: pointer;
-}
-
-.ohne-wiederholungen .sendung[data-wiederholung="1"],
-.ohne-gesehene .sendung.ist-gesehen {
-  display: none;
-}
-
-.alles-gefiltert {
-  display: none;
-}
-
-.tag.alles-ausgeblendet .alles-gefiltert {
-  display: block;
-}
-
-/* Handybreite: Kennzeichen und Gesehen-Knopf in eine eigene Zeile unter dem
-   Titel - in der vierten Spalte wurden sie rechts abgeschnitten, und der
-   Titel brach Wort fuer Wort um. */
-@media (max-width: 600px) {
-  body {
-    padding: 1rem;
-  }
-
+  /* Bild links, daneben Zeit und Titel; Kennzeichen und Haekchen in eine
+     eigene Zeile darunter, statt rechts abgeschnitten zu werden */
   .sendung {
-    grid-template-columns: 3rem 5.5rem 1fr;
-    gap: 0.4rem 0.6rem;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 0.5rem 0.8rem;
   }
 
-  .marken {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-  }
+  .sendung .vorschau { width: 96px; height: 54px; grid-row: span 2; }
+  .zeitblock { flex-direction: row; align-items: center; gap: 0.5rem; }
+  .text { grid-column: 2; }
+  .marken { grid-column: 1 / -1; justify-content: flex-start; }
+
+  .entdeckt-eintrag { grid-template-columns: 96px minmax(0, 1fr); }
+  .entdeckt-eintrag .vorschau { width: 96px; height: 54px; }
+  .entdeckt-knoepfe { grid-column: 1 / -1; justify-content: flex-start; }
+
+  .start-karte { grid-template-columns: 84px minmax(0, 1fr); gap: 0.9rem; }
+  .vorschau-poster { width: 84px; height: 126px; }
+  .start-titel { font-size: 1.1rem; }
 }
