@@ -33,7 +33,13 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for  #
 
 from scraper.entdecken import STUFE_REALITY, STUFE_SOAP, fuer_anzeige  # noqa: E402
 from scraper.folgen import gesehen_schluessel, hauptausstrahlung_von, hauptausstrahlungen  # noqa: E402
-from scraper.filter import CONFIG_PFAD, lade_shows_config, passt_zu_namen, speichere_shows_config  # noqa: E402
+from scraper.filter import (  # noqa: E402
+    CONFIG_PFAD,
+    lade_shows_config,
+    passt_zu_namen,
+    sendungsname,
+    speichere_shows_config,
+)
 from scraper.sicherung import (  # noqa: E402
     SicherungsFehler,
     erstelle_sicherung,
@@ -441,7 +447,7 @@ def entdeckung_hinzufuegen():
     """Nimmt einen Titel aus "Neu entdeckt" in die Sendungsliste auf und
     kopiert seine schon bekannten Termine direkt in die Uebersicht - ohne
     neuen Datenabruf, deshalb klappen auch mehrere Klicks hintereinander."""
-    titel = request.form.get("titel", "").strip()
+    titel = sendungsname(request.form.get("titel", "").strip())
     if not titel:
         return redirect(url_for("index"))
     daten = lade_shows_config(CONFIG_PFAD)

@@ -270,10 +270,12 @@ Der ist bewusst getrennt, weil er deutlich mehr und gemischtere Treffer hat.
   gezielt nach den Namen aus deiner Liste gesucht.
 - **Ausgeblendetes zurückholen:** unter **„Sendungen verwalten"** im
   Abschnitt **„Ausgeblendete Vorschläge"** → **„Wieder anzeigen"**.
-- Hinzugefügt wird der Titel genau so, wie er im Programm steht (z. B.
-  „Verpfuscht – Ein Fall für die Beauty Docs"). Läuft das Format auch unter
-  anderen Titeln, kannst du in „Sendungen verwalten" zusätzlich eine kürzere
-  Schreibweise als eigene Sendung ergänzen.
+- Hinzugefügt wird der Titel **ohne Untertitel**: aus „Dating ohne Grenzen:
+  Die letzte Chance" wird „Dating ohne Grenzen" — so passt der Eintrag auch
+  auf die nächste Staffel mit anderem Untertitel. Bliebe nur ein kurzes
+  einzelnes Wort übrig (z. B. „Berlin" aus „Berlin – Tag & Nacht"), wird
+  der ganze Titel übernommen, weil so ein Wort auch in fremden Sendungen
+  vorkommt.
 
 ---
 
@@ -468,6 +470,21 @@ kopieren.
 ---
 
 # Wenn etwas nicht klappt
+
+## Eine fremde Sendung steht in der Übersicht
+
+Eine Sendung wird erkannt, wenn ein Name aus deiner Liste in ihrem Titel
+steht oder beide Titel fast gleich geschrieben sind.
+
+1. **„Sendungen verwalten"** öffnen und nachsehen, welcher Eintrag in deiner
+   Liste im Titel der fremden Sendung steckt. Meist ist es ein sehr kurzer
+   Name.
+2. Den Eintrag genauer schreiben oder entfernen und speichern. Ab dem
+   nächsten Datenabruf ist die fremde Sendung weg.
+
+Bis Version 2.0.0 reichten schon zwei gemeinsame Wörter: „Das A-Team" passte
+auf „#CoupleChallenge – Das stärkste Team gewinnt". Das ist seit 2.0.1
+behoben, du musst dafür nichts tun.
 
 ## Eine Streaming-Sendung fehlt
 

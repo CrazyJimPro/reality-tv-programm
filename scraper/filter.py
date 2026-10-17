@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from rapidfuzz import fuzz
@@ -50,13 +51,20 @@ def lade_show_namen(config_pfad: Path = CONFIG_PFAD) -> list[str]:
 
 
 def _passt_zu_liste(titel: str, normalisierte_namen: list[str]) -> bool:
+    """Ein Titel passt, wenn der Name darin steht ("Bauer sucht Frau
+    International") oder beide insgesamt fast gleich sind
+    (Tippfehler, andere Wortreihenfolge).
+
+    Bewusst NICHT token_set_ratio: das vergleicht nur die gemeinsamen Woerter
+    und gab "Das A-Team" gegen "#CoupleChallenge - Das staerkste Team gewinnt"
+    knapp 89 Punkte - zwei Allerweltswoerter reichten fuer einen Treffer."""
     titel_norm = _normalisiert(titel)
     for name_norm in normalisierte_namen:
         if not name_norm:
             continue
         if name_norm in titel_norm:
             return True
-        if fuzz.token_set_ratio(titel_norm, name_norm) >= AEHNLICHKEIT_SCHWELLE:
+        if fuzz.token_sort_ratio(titel_norm, name_norm) >= AEHNLICHKEIT_SCHWELLE:
             return True
     return False
 
@@ -64,6 +72,19 @@ def _passt_zu_liste(titel: str, normalisierte_namen: list[str]) -> bool:
 def normalisiert(text: str) -> str:
     """Vergleichsform eines Titels (Kleinschreibung, ohne Bindestriche/Ausrufezeichen)."""
     return _normalisiert(text)
+
+
+def sendungsname(titel: str) -> str:
+    """Titel ohne Untertitel, als Eintrag fuer die Sendungsliste:
+    "Dating ohne Grenzen: Die letzte Chance" -> "Dating ohne Grenzen".
+    Damit passt der Eintrag auch auf die naechste Staffel mit anderem
+    Untertitel. Bleibt nur ein kurzes Einzelwort uebrig ("Berlin - Tag &
+    Nacht", "SOS - Retter im Einsatz"), wird der ganze Titel behalten - so
+    ein Wort taucht auch in fremden Sendungen auf."""
+    vorne = re.split(r"\s+[-–—]\s+|:\s+", titel, maxsplit=1)[0].strip()
+    if len(vorne.split()) >= 2 or len(vorne) >= 10:
+        return vorne
+    return titel
 
 
 def passt_zu_namen(titel: str, namen: list[str]) -> bool:
