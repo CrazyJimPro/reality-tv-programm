@@ -119,6 +119,9 @@
 
 * { box-sizing: border-box; }
 
+/* hidden soll auch gegen display:flex weiter Elemente gewinnen */
+[hidden] { display: none !important; }
+
 body {
   margin: 0 auto;
   max-width: 1400px;
@@ -470,12 +473,110 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
 .filter-pille input:checked + span::before { background: var(--link); border-color: var(--link); }
 .filter-pille input:focus-visible + span { outline: 2px solid var(--link); outline-offset: 2px; }
 
+/* Knopf "Sender ▾" - gleiche Form wie die Pillen daneben */
+.filter-pille-knopf {
+  min-height: 36px;
+  padding: 0.35rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--flaeche-rand);
+  background: transparent;
+  color: var(--muted);
+  font: 600 0.85rem 'Manrope', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.filter-pille-knopf:hover { border-color: var(--aktiv-rand); }
+.filter-pille-knopf.aktiv { background: var(--aktiv-bg); border-color: var(--aktiv-rand); color: var(--fg); }
+
+/* Sender-Chips zum Ein-/Ausblenden */
+.sender-auswahl {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem 0.5rem;
+}
+.sender-chip {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 32px;
+  padding: 0.25rem 0.7rem;
+  border-radius: 8px;
+}
+.sender-chip[aria-pressed="false"] { opacity: 0.3; filter: grayscale(1); text-decoration: line-through; }
+.link-knopf {
+  background: none;
+  border: none;
+  color: var(--link);
+  font: 600 0.85rem 'Manrope', sans-serif;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+}
+.link-knopf:hover { text-decoration: underline; }
+
+/* Leiste "Nur <Sendung>" beim Titel-Filter */
+.titel-filter-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.6rem 0.5rem 1.2rem;
+  border-radius: 24px;
+  background: var(--aktiv-bg);
+  border: 1px solid var(--aktiv-rand);
+  scroll-margin-top: 1rem;
+}
+.titel-filter-leiste .ausblenden-button { min-height: 36px; padding: 0.3rem 0.9rem; }
+
+/* Kurze Meldungen unten in der Mitte */
+.meldung {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.65rem 0.7rem 0.65rem 1.2rem;
+  border-radius: 999px;
+  background: #15172b;
+  color: #f4f3ff;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  font-size: 0.9rem;
+}
+.meldung button {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.35);
+  color: #67e8f9;
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font: 700 0.85rem 'Manrope', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* Ohne JavaScript stehen alle Bereiche untereinander, mit Ueberschrift */
 .panel { margin-bottom: 1.5rem; }
 .panel-titel { margin: 1.5rem 0 0.75rem; font-size: 1.3rem; font-weight: 800; }
 .mit-reitern .panel { display: none; }
 .mit-reitern .panel.aktiv { display: block; }
 .mit-reitern .panel-titel { display: none; }
+
+/* Titel-Filter: beide Wochen untereinander, nur Tage mit Treffern */
+.titel-filter-aktiv .panel[data-panel="woche1"],
+.titel-filter-aktiv .panel[data-panel="woche2"] { display: block; }
+.titel-filter-aktiv .panel:not([data-panel="woche1"]):not([data-panel="woche2"]),
+.titel-filter-aktiv .panel.panel-ohne-treffer,
+.titel-filter-aktiv .tag-leer,
+.titel-filter-aktiv .tag.alles-ausgeblendet { display: none; }
+.titel-filter-aktiv .panel-titel { display: block; margin-top: 0.5rem; }
+.titel-filter-aktiv .reiter.aktiv { background: transparent; border-color: transparent; color: var(--muted); }
 
 /* --- Tage und Sendungen ------------------------------------------------- */
 .tag {
@@ -640,6 +741,46 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
 
 .wdh-hinweis { font-size: 0.78rem; color: var(--muted); font-style: italic; }
 
+/* Titel ist ein Knopf (Klick = nur diese Sendung), sieht aber aus wie Text */
+.titel-knopf {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.titel-knopf:hover { text-decoration: underline; text-decoration-color: var(--aktiv-rand); text-underline-offset: 3px; }
+
+/* "Gehört nicht dazu" - bewusst unauffaellig, erst beim Hover deutlich */
+.ausschliessen-form { margin: 0; display: inline-flex; }
+.ausschliessen-knopf {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.55;
+  cursor: pointer;
+}
+.sendung:hover .ausschliessen-knopf,
+.ausschliessen-knopf:focus-visible { opacity: 1; }
+.ausschliessen-knopf:hover { color: var(--fehler); border-color: var(--fehler); }
+
+.entdeckt-eintrag { transition: opacity 0.25s, transform 0.25s; }
+.entdeckt-eintrag.verschwindet { opacity: 0; transform: translateX(20px); }
+
+.sendung.sender-aus,
+.sendung.titel-aus,
 .ohne-wiederholungen .sendung[data-wiederholung="1"],
 .ohne-gesehene .sendung.ist-gesehen { display: none; }
 

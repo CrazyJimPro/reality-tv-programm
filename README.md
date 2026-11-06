@@ -23,6 +23,7 @@ keine geplante Aufgabe, kein Cronjob.
 | festlegen, welche Sendungen angezeigt werden | [Sendungen verwalten](#sendungen-verwalten) |
 | Reality-Formate finden, die ich noch nicht kenne | [Neue Formate entdecken](#neue-formate-entdecken) |
 | Gesehenes abhaken, Wiederholungen ausblenden | [Gesehen und Wiederholungen](#gesehen-und-wiederholungen) |
+| nur bestimmte Sender oder eine Sendung sehen, Fehltreffer loswerden | [Filtern und Fehltreffer](#filtern-und-fehltreffer) |
 | Starts bei Joyn, Prime Video, Netflix sehen | [Streaming-Starts (TMDB)](#streaming-starts-tmdb) |
 | meine Sendungsliste sichern | [Sendungsliste sichern](#sendungsliste-sichern) |
 | meine Liste auf einen anderen Rechner holen | [Sicherung einspielen](#sicherung-einspielen) |
@@ -260,10 +261,14 @@ Reality-TV sind, aber noch nicht in deiner Liste stehen.
    daran sagt, wie viele Vorschläge es gerade gibt.
 2. Zu jedem Titel siehst du Bild, Sender, Genre, wie oft er in den zwei Wochen
    läuft und den nächsten Termin.
-3. **„Hinzufügen"** nimmt die Sendung in deine Liste auf. Ihre Termine stehen
-   **sofort** in der Übersicht — ohne Warten auf einen neuen Datenabruf, du
-   kannst also mehrere hintereinander hinzufügen.
-4. **„Ausblenden"** schlägt einen Titel nicht mehr vor.
+3. **„Hinzufügen"** nimmt die Sendung in deine Liste auf. Der Eintrag
+   verschwindet sofort aus den Vorschlägen, ohne dass die Seite neu lädt, und
+   unten erscheint kurz, wie viele Termine übernommen wurden. Du kannst also
+   mehrere hintereinander hinzufügen. Wechselst du danach auf „Nächste Woche",
+   lädt die Seite einmal neu und die Termine stehen drin — ohne Warten auf
+   einen neuen Datenabruf.
+4. **„Ausblenden"** schlägt einen Titel nicht mehr vor (ebenfalls ohne
+   Neuladen).
 
 Darunter gibt es einen zugeklappten Abschnitt **„Weitere
 Doku-Soaps"** — Auswanderer-, Renovier-, Pfandleiher-Soaps und Ähnliches.
@@ -340,6 +345,51 @@ Hinweis statt einer leeren Liste.
   Danach kommen nur noch neue Termine dazu.
 - Die Häkchen sind **nicht** Teil der Sicherung (sie stehen in
   `data/programm.db`, nicht in der Sendungsliste).
+
+---
+
+# Filtern und Fehltreffer
+
+## Nur bestimmte Sender zeigen
+
+1. In der Leiste mit den Reitern auf **„Sender ▾"** klicken. Darunter
+   erscheint für jeden Sender, der in den zwei Wochen vorkommt, ein Kästchen
+   in der Senderfarbe.
+2. Einen Sender anklicken blendet ihn aus (das Kästchen wird grau und
+   durchgestrichen). Nochmal klicken holt ihn zurück.
+3. **„Alle zeigen"** nimmt alle Sender wieder rein.
+
+Am Knopf steht, wie viele Sender gerade aus sind, z.B. „Sender (2 aus)". Der
+Browser merkt sich die Auswahl, wie bei den anderen Schaltern.
+
+## Nur eine Sendung zeigen
+
+1. Auf den **Titel** einer Sendung klicken.
+2. Die Übersicht zeigt jetzt beide Wochen untereinander, aber nur noch diese
+   Sendung. Oben steht z.B. „Nur „Berlin - Tag & Nacht" · 10 Termine in den
+   zwei Wochen".
+3. **„✕ Filter aufheben"**, die **Esc**-Taste, ein Klick auf einen Reiter
+   oder nochmal auf den Titel zeigt wieder alles.
+
+Gezeigt werden alle Termine, die über denselben Eintrag deiner Liste
+hereinkamen — also auch, wenn ein Sender den Titel etwas anders schreibt.
+
+## Eine Sendung gehört nicht dazu
+
+Erkennt der Filter eine fremde Sendung als Reality-TV (so wie früher „Das
+A-Team"), nimmst du sie mit einem Klick wieder raus:
+
+1. Rechts in ihrer Zeile auf das kleine **⊘** klicken (neben dem ✓).
+2. Die Rückfrage bestätigen.
+3. Alle Termine mit genau diesem Titel verschwinden sofort. Unten erscheint
+   kurz **„Rückgängig"**, falls du dich verklickt hast.
+
+Ausgeschlossen wird nur **dieser Titel**, nicht der Eintrag in deiner Liste,
+über den er hereinkam — die eigentlich gewollte Sendung bleibt also. Der
+Titel taucht auch nicht unter „Neu entdeckt" wieder auf. Zurückholen geht
+jederzeit unter **„Sendungen verwalten"** → Abschnitt **„Ausgeschlossene
+Titel"** → **„Wieder zulassen"**. Die Liste ist Teil der
+[Sicherung](#sendungsliste-sichern).
 
 ---
 
@@ -427,7 +477,8 @@ neu.
 Der Browser lädt eine Datei namens `reality-tv-programm-2026-09-28.json`
 herunter — normalerweise in deinen Ordner *Downloads*. Das ist die komplette
 Sicherung, mehr braucht es nicht. Sie enthält auch die Titel, die du unter
-„Neu entdeckt" ausgeblendet hast. Sie enthält keine Zugangsdaten und lässt
+„Neu entdeckt" ausgeblendet oder mit „⊘" als „gehört nicht dazu"
+ausgeschlossen hast. Sie enthält keine Zugangsdaten und lässt
 sich gefahrlos weitergeben.
 
 **Wann sichern?** Immer dann, wenn du deine Sendungsliste spürbar geändert
@@ -487,6 +538,12 @@ kopieren.
 
 Eine Sendung wird erkannt, wenn ein Name aus deiner Liste in ihrem Titel
 steht oder beide Titel fast gleich geschrieben sind.
+
+**Schnellster Weg:** in der Zeile der Sendung auf **⊘** klicken, siehe
+[Eine Sendung gehört nicht dazu](#eine-sendung-gehört-nicht-dazu). Das wirkt
+sofort und nur für genau diesen Titel.
+
+Kommen immer wieder fremde Sendungen über denselben Eintrag herein:
 
 1. **„Sendungen verwalten"** öffnen und nachsehen, welcher Eintrag in deiner
    Liste im Titel der fremden Sendung steckt. Meist ist es ein sehr kurzer
@@ -722,6 +779,13 @@ Flask, erreichbar unter **Port 5000**:
   Sendungsliste wird erst beim Anzeigen. „Hinzufügen" kopiert die Termine von
   dort direkt in die Übersicht. Ausgeblendete Titel stehen unter
   `"ausgeblendet"` in `config/reality_shows.json`
+- `/sendung/ausschliessen`, `/sendung/zulassen` (POST) — „Gehört nicht dazu".
+  Titel stehen unter `"ausgeschlossen"` in `config/reality_shows.json` und
+  werden erst beim Anzeigen aus der Übersicht genommen (wirkt sofort, auch für
+  RTL+/TMDB-Zeilen, die am Filter vorbeilaufen)
+- Diese POST-Routen antworten mit JSON, wenn der Aufruf `Accept:
+  application/json` schickt (so ruft `uebersicht.js` sie ohne Neuladen auf);
+  ohne JavaScript bleibt es bei der normalen Weiterleitung
 - `/beenden` (POST) — beendet die App vollständig
 
 Oberfläche (seit v2.0.0): Glas-Look wie die Schwester-App streaming-info, alles

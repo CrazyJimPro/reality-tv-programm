@@ -36,6 +36,7 @@ from scraper.folgen import gesehen_schluessel, hauptausstrahlung_von, hauptausst
 from scraper.filter import (  # noqa: E402
     CONFIG_PFAD,
     lade_shows_config,
+    normalisiert,
     passt_zu_namen,
     sendungsname,
     speichere_shows_config,
@@ -334,10 +335,18 @@ def index():
     uebernaechste_woche_ab = heute + timedelta(days=7)
     uebernaechste_woche_bis = heute + timedelta(days=VORSCHAU_TAGE - 1)
 
+    config = lade_shows_config(CONFIG_PFAD)
     rows = hole_programme(ab_datum=heute, bis_datum=uebernaechste_woche_bis, db_pfad=DB_PFAD)
+    # Per "Gehört nicht dazu" ausgeschlossene Titel (Fehltreffer des Filters).
+    # Erst hier beim Anzeigen herausgenommen: wirkt sofort, ohne neuen Abruf,
+    # und auch fuer RTL+/TMDB-Zeilen, die am Filter vorbeilaufen.
+    ausgeschlossen_norm = {normalisiert(t) for t in config.get("ausgeschlossen", [])}
+    rows = [r for r in rows if normalisiert(r["titel"]) not in ausgeschlossen_norm]
     haupt = hauptausstrahlungen(hole_folgen_verlauf(uebernaechste_woche_bis, db_pfad=DB_PFAD))
     gesehen = hole_gesehen(db_pfad=DB_PFAD)
+    show_zu_titel = _show_zuordnung({r["titel"] for r in rows}, config)
     for row in rows:
+        row["show"] = show_zu_titel[row["titel"]]
         # Folgenangabe der Detailseite zuerst, sonst wie bisher aus dem
         # Untertitel von rtl.de
         row["staffel_folge"] = _staffel_folge(row.get("folge")) or _staffel_folge(row.get("beschreibung"))
@@ -363,14 +372,15 @@ def index():
     # Der Merker steht in der Sendungsliste selbst, nicht im Arbeitsspeicher:
     # sonst waere der Hinweis nach dem ersten Neustart weg, obwohl noch nichts
     # eingerichtet ist.
-    config = lade_shows_config(CONFIG_PFAD)
     einrichtung_offen = not config.get("einrichtung_erledigt")
 
     entdeckt = fuer_anzeige(
         # Die TMDB-Vorschlaege reichen weiter als die zwei Wochen
         hole_entdeckungen(heute, heute + timedelta(days=tmdb.TAGE_ENTDECKEN), db_pfad=DB_PFAD),
         show_namen=_show_namen(config),
-        ausgeblendet=config.get("ausgeblendet", []),
+        # Was als Fehltreffer ausgeschlossen wurde, soll auch nicht als
+        # "neu entdeckt" wiederkommen
+        ausgeblendet=config.get("ausgeblendet", []) + config.get("ausgeschlossen", []),
     )
 
     bilder = tmdb.lade_bilder()
@@ -384,6 +394,8 @@ def index():
         uebernaechste_woche=uebernaechste_woche,
         status=status,
         status_alter=_status_alter(status),
+        # Fuer den Sender-Filter: alle Sender, die im Zeitraum vorkommen
+        sender_im_zeitraum=sorted({r["sender"] for r in rows}, key=str.lower),
         zeitraum=zeitraum,
         heute=heute,
         anzahl_gesamt=len(rows),
@@ -410,6 +422,29 @@ def _zeitraum_text(ab: date, bis: date) -> str:
     if ab.month == bis.month:
         return f"{ab.day}.–{bis.day}. {MONATE[bis.month - 1][:3]}"
     return f"{ab.day}. {MONATE[ab.month - 1][:3]} – {bis.day}. {MONATE[bis.month - 1][:3]}"
+
+
+def _show_zuordnung(titel: set[str], config: dict) -> dict[str, str]:
+    """Ordnet jedem Titel der Uebersicht den Eintrag der Sendungsliste zu,
+    ueber den er hereinkam ("Das Sommerhaus der Stars - Kampf der Promipaare"
+    -> "Sommerhaus der Stars"). Damit zeigt ein Klick auf den Titel alle
+    Termine dieser Sendung, auch wenn die Sender sie verschieden schreiben.
+    Passt kein Eintrag (RTL+ und TMDB laufen am Filter vorbei), bleibt es
+    beim Titel selbst."""
+    shows = config.get("shows", [])
+    zuordnung = {}
+    for t in titel:
+        zuordnung[t] = next(
+            (s["name"] for s in shows if passt_zu_namen(t, [s["name"], *s.get("aliases", [])])),
+            t,
+        )
+    return zuordnung
+
+
+def _will_json() -> bool:
+    """Kommt der Aufruf per fetch aus uebersicht.js? Dann JSON statt
+    Weiterleitung - ohne JavaScript bleibt alles beim normalen Formular."""
+    return request.headers.get("Accept", "").startswith("application/json")
 
 
 def _show_namen(config: dict) -> list[str]:
@@ -473,6 +508,8 @@ def entdeckung_hinzufuegen():
     neuen Datenabruf, deshalb klappen auch mehrere Klicks hintereinander."""
     titel = sendungsname(request.form.get("titel", "").strip())
     if not titel:
+        if _will_json():
+            return jsonify({"ok": False}), 400
         return redirect(url_for("index"))
     daten = lade_shows_config(CONFIG_PFAD)
     shows = daten.setdefault("shows", [])
@@ -485,28 +522,67 @@ def entdeckung_hinzufuegen():
     rows = hole_entdeckungen(heute, heute + timedelta(days=VORSCHAU_TAGE - 1), db_pfad=DB_PFAD)
     passende = [r for r in rows if passt_zu_namen(r["titel"], [titel])]
     uebernehme_entdeckungen(passende, db_pfad=DB_PFAD)
+    if _will_json():
+        return jsonify({"ok": True, "titel": titel, "termine": len(passende)})
     return redirect(url_for("index", hinzugefuegt=titel, termine=len(passende), _anchor="entdeckungen"))
+
+
+def _titel_merken(feld: str, titel: str) -> None:
+    """Titel in eine der Titellisten der Konfiguration aufnehmen
+    ("ausgeblendet" fuer Neu entdeckt, "ausgeschlossen" fuer Fehltreffer)."""
+    daten = lade_shows_config(CONFIG_PFAD)
+    liste = daten.setdefault(feld, [])
+    if titel.lower() not in (t.lower() for t in liste):
+        liste.append(titel)
+        liste.sort(key=str.lower)
+        speichere_shows_config(daten, CONFIG_PFAD)
+
+
+def _titel_vergessen(feld: str, titel: str) -> None:
+    daten = lade_shows_config(CONFIG_PFAD)
+    daten[feld] = [t for t in daten.get(feld, []) if t.lower() != titel.lower()]
+    speichere_shows_config(daten, CONFIG_PFAD)
 
 
 @app.route("/entdeckung/ausblenden", methods=["POST"])
 def entdeckung_ausblenden():
     titel = request.form.get("titel", "").strip()
     if titel:
-        daten = lade_shows_config(CONFIG_PFAD)
-        ausgeblendet = daten.setdefault("ausgeblendet", [])
-        if titel.lower() not in (t.lower() for t in ausgeblendet):
-            ausgeblendet.append(titel)
-            ausgeblendet.sort(key=str.lower)
-            speichere_shows_config(daten, CONFIG_PFAD)
+        _titel_merken("ausgeblendet", titel)
+    if _will_json():
+        return jsonify({"ok": bool(titel)})
     return redirect(url_for("index", _anchor="entdeckungen"))
+
+
+@app.route("/sendung/ausschliessen", methods=["POST"])
+def sendung_ausschliessen():
+    """"Gehört nicht dazu": ein Titel, den der Filter faelschlich erkannt hat
+    (wie damals "Das A-Team"), verschwindet aus der Uebersicht. Gespeichert
+    wird der genaue Titel - nicht der Listeneintrag, der ihn hereingeholt hat,
+    sonst verschwaende die eigentlich gewollte Sendung gleich mit."""
+    titel = request.form.get("titel", "").strip()
+    if titel:
+        _titel_merken("ausgeschlossen", titel)
+    if _will_json():
+        return jsonify({"ok": bool(titel)})
+    return redirect(url_for("index"))
+
+
+@app.route("/sendung/zulassen", methods=["POST"])
+def sendung_zulassen():
+    """Macht "Gehört nicht dazu" rueckgaengig (Meldung in der Uebersicht
+    oder Liste in "Sendungen verwalten")."""
+    titel = request.form.get("titel", "").strip()
+    _titel_vergessen("ausgeschlossen", titel)
+    if _will_json():
+        return jsonify({"ok": True})
+    return redirect(url_for("einstellungen", _anchor="ausgeschlossen"))
 
 
 @app.route("/entdeckung/einblenden", methods=["POST"])
 def entdeckung_einblenden():
     titel = request.form.get("titel", "").strip()
-    daten = lade_shows_config(CONFIG_PFAD)
-    daten["ausgeblendet"] = [t for t in daten.get("ausgeblendet", []) if t.lower() != titel.lower()]
-    speichere_shows_config(daten, CONFIG_PFAD)
+    _titel_vergessen("ausgeblendet", titel)
     return redirect(url_for("einstellungen", _anchor="ausgeblendet"))
 
 
@@ -657,6 +733,7 @@ def einstellungen():
         eingespielt=request.args.get("eingespielt"),
         fehler=request.args.get("fehler"),
         ausgeblendet=daten.get("ausgeblendet", []),
+        ausgeschlossen=daten.get("ausgeschlossen", []),
         tmdb_endung=(tmdb.lade_schluessel() or "")[-4:],
         tmdb_aus_streaming_info=tmdb.schluessel_aus_streaming_info() not in (None, tmdb.lade_schluessel()),
         tmdb_meldung=request.args.get("tmdb"),

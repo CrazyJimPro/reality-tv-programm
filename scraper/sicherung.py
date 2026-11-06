@@ -54,6 +54,10 @@ def erstelle_sicherung(version: str = "unbekannt") -> dict:
         # Kam ohne Formatwechsel dazu: aeltere Programmfassungen lesen das
         # Feld schlicht nicht mit.
         "ausgeblendet": daten.get("ausgeblendet", []),
+        # Seit v2.2.0: Titel, die per "Gehört nicht dazu" aus der Uebersicht
+        # genommen wurden (Fehltreffer des Filters). Ebenfalls ohne
+        # Formatwechsel.
+        "ausgeschlossen": daten.get("ausgeschlossen", []),
     }
 
 
@@ -101,6 +105,14 @@ def _shows_bereinigen(roh: object) -> tuple[list[dict], int]:
     return shows, verworfen
 
 
+def _titelliste(roh: object) -> list[str] | None:
+    """Liste von Titeln aus der Sicherung; None, wenn das Feld fehlt oder
+    keine Liste ist (dann bleibt der aktuelle Stand stehen)."""
+    if not isinstance(roh, list):
+        return None
+    return [t.strip() for t in roh if isinstance(t, str) and t.strip()]
+
+
 def lies_sicherung(rohdaten: bytes | str) -> dict:
     """Prueft eine hochgeladene Datei und gibt den bereinigten Inhalt zurueck.
 
@@ -142,18 +154,12 @@ def lies_sicherung(rohdaten: bytes | str) -> dict:
     if verworfen:
         notizen.append(f"{verworfen} unlesbare(r) Eintrag übergangen")
 
-    # Fehlt das Feld (Sicherung von vor v1.8.0), bleibt die aktuelle
-    # Ausblend-Liste beim Einspielen unangetastet - None statt [].
-    roh_ausgeblendet = daten.get("ausgeblendet")
-    ausgeblendet = (
-        [t.strip() for t in roh_ausgeblendet if isinstance(t, str) and t.strip()]
-        if isinstance(roh_ausgeblendet, list)
-        else None
-    )
-
     return {
         "shows": shows,
-        "ausgeblendet": ausgeblendet,
+        # Fehlt ein Feld (Sicherung von vor v1.8.0 bzw. v2.2.0), bleibt die
+        # aktuelle Liste beim Einspielen unangetastet - None statt [].
+        "ausgeblendet": _titelliste(daten.get("ausgeblendet")),
+        "ausgeschlossen": _titelliste(daten.get("ausgeschlossen")),
         "erstellt_am": str(daten.get("erstellt_am", "")),
         "erstellt_mit_version": str(daten.get("erstellt_mit_version", "")),
         "notizen": notizen,
@@ -200,8 +206,9 @@ def spiele_sicherung_ein(rohdaten: bytes | str, version: str = "unbekannt") -> d
     # sofern die Sicherung eine enthaelt).
     daten = lade_shows_config(CONFIG_PFAD)
     daten["shows"] = sorted(gepruefte["shows"], key=lambda s: s["name"].lower())
-    if gepruefte["ausgeblendet"] is not None:
-        daten["ausgeblendet"] = sorted(gepruefte["ausgeblendet"], key=str.lower)
+    for feld in ("ausgeblendet", "ausgeschlossen"):
+        if gepruefte[feld] is not None:
+            daten[feld] = sorted(gepruefte[feld], key=str.lower)
     # Wer eine Sicherung einspielt, hat sich eingerichtet: der Wegweiser fuer
     # frische Installationen auf der Startseite ist damit erledigt.
     daten["einrichtung_erledigt"] = True

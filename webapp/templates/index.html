@@ -129,7 +129,8 @@
             {% for e in tag.eintraege %}
               {# data-zeit: uebersicht.js graut damit heute schon Gelaufenes aus
                  (TMDB-Termine haben keine Uhrzeit, die bleiben aussen vor) #}
-              <li class="sendung{% if e.gesehen %} ist-gesehen{% endif %}" data-schluessel="{{ e.schluessel }}"{% if e.hauptausstrahlung %} data-wiederholung="1"{% endif %}{% if 'themoviedb.org' not in e.quellen %} data-zeit="{{ e.datum }}T{{ e.uhrzeit }}"{% endif %}>
+              <li class="sendung{% if e.gesehen %} ist-gesehen{% endif %}" data-schluessel="{{ e.schluessel }}"{% if e.hauptausstrahlung %} data-wiederholung="1"{% endif %}{% if 'themoviedb.org' not in e.quellen %} data-zeit="{{ e.datum }}T{{ e.uhrzeit }}"{% endif %}
+                  data-sender="{{ e.sender }}" data-show="{{ e.show }}" data-titel="{{ e.titel }}">
                 {{ vorschau(e.titel, e.sender) }}
                 <span class="zeitblock">
                   {% if 'themoviedb.org' in e.quellen %}
@@ -140,7 +141,7 @@
                   <span class="sender {{ e.sender|senderklasse }}">{{ e.sender }}</span>
                 </span>
                 <span class="text">
-                  <span class="titel">{{ e.titel }}</span>
+                  <button type="button" class="titel titel-knopf" title="Nur diese Sendung zeigen (alle Termine der zwei Wochen)">{{ e.titel }}</button>
                   {% if e.beschreibung or e.folgentitel %}
                     <span class="beschreibung">{{ e.beschreibung or e.folgentitel }}</span>
                   {% endif %}
@@ -163,11 +164,19 @@
                   <button type="button" class="gesehen-knopf" aria-pressed="{{ 'true' if e.gesehen else 'false' }}"
                           title="{{ 'Diese Folge' if e.folge or e.folgentitel else 'Diese Ausstrahlung' }} als gesehen markieren"
                           aria-label="{{ e.titel }} als gesehen markieren">✓</button>
+                  {# Rueckfrage und Abschicken per fetch macht uebersicht.js #}
+                  <form method="post" action="{{ url_for('sendung_ausschliessen') }}" class="ausschliessen-form">
+                    <input type="hidden" name="titel" value="{{ e.titel }}">
+                    <button type="submit" class="ausschliessen-knopf" title="Gehört nicht dazu – Titel aus der Übersicht nehmen"
+                            aria-label="{{ e.titel }}: gehört nicht dazu">
+                      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg>
+                    </button>
+                  </form>
                 </span>
               </li>
             {% endfor %}
           </ul>
-          <p class="keine-sendung alles-gefiltert">Alles an diesem Tag ist durch die Schalter oben ausgeblendet.</p>
+          <p class="keine-sendung alles-gefiltert">Alles an diesem Tag ist durch die Schalter oder Filter oben ausgeblendet.</p>
         {% endif %}
       </div>
     {% endfor %}
@@ -190,11 +199,12 @@
             </span>
           </div>
           <div class="entdeckt-knoepfe">
-            <form method="post" action="{{ url_for('entdeckung_hinzufuegen') }}">
+            {# data-aktion: uebersicht.js schickt die Formulare per fetch ab #}
+            <form method="post" action="{{ url_for('entdeckung_hinzufuegen') }}" data-aktion="hinzufuegen">
               <input type="hidden" name="titel" value="{{ g.titel }}">
               <button type="submit" class="hinzufuegen-button">Hinzufügen</button>
             </form>
-            <form method="post" action="{{ url_for('entdeckung_ausblenden') }}">
+            <form method="post" action="{{ url_for('entdeckung_ausblenden') }}" data-aktion="ausblenden">
               <input type="hidden" name="titel" value="{{ g.titel }}">
               <button type="submit" class="ausblenden-button" title="Nicht mehr vorschlagen (in „Sendungen verwalten“ rückgängig zu machen)">Ausblenden</button>
             </form>
@@ -218,8 +228,31 @@
     <div class="anzeige-filter">
       <label class="filter-pille"><input type="checkbox" id="filter-wiederholungen"><span>Wiederholungen ausblenden</span></label>
       <label class="filter-pille"><input type="checkbox" id="filter-gesehen"><span>Gesehenes ausblenden</span></label>
+      {% if sender_im_zeitraum %}
+        <button type="button" class="filter-pille-knopf" id="sender-knopf" aria-expanded="false" aria-controls="sender-auswahl" hidden>
+          Sender <span id="sender-aus-zahl"></span> ▾
+        </button>
+      {% endif %}
     </div>
+    {# Sender-Filter: Chips je Sender, uebersicht.js merkt sich abgewaehlte #}
+    {% if sender_im_zeitraum %}
+      <div class="sender-auswahl" id="sender-auswahl" hidden>
+        {% for s in sender_im_zeitraum %}
+          <button type="button" class="sender-chip sender {{ s|senderklasse }}" data-sender-chip="{{ s }}" aria-pressed="true">{{ s }}</button>
+        {% endfor %}
+        <button type="button" class="link-knopf" id="sender-alle">Alle zeigen</button>
+      </div>
+    {% endif %}
   </nav>
+
+  {# Erscheint nach einem Klick auf einen Sendungstitel #}
+  <div class="titel-filter-leiste" id="titel-filter-leiste" hidden>
+    <span>Nur <strong id="titel-filter-name"></strong> · <span id="titel-filter-zahl"></span></span>
+    <button type="button" class="ausblenden-button" id="titel-filter-aus">✕ Filter aufheben</button>
+  </div>
+
+  {# Kurze Meldungen (z.B. "Rückgängig") aus uebersicht.js #}
+  <div class="meldung" id="meldung" role="status" aria-live="polite" hidden></div>
 
   <section class="panel" data-panel="woche1" id="woche1">
     {{ woche("Nächste Woche", naechste_woche) }}
@@ -304,7 +337,10 @@
     </script>
   {% endif %}
 
-  <script>window.RTV_GESEHEN_URL = "{{ url_for('gesehen_setzen') }}";</script>
+  <script>
+    window.RTV_GESEHEN_URL = "{{ url_for('gesehen_setzen') }}";
+    window.RTV_ZULASSEN_URL = "{{ url_for('sendung_zulassen') }}";
+  </script>
   <script src="{{ url_for('static', filename='uebersicht.js') }}"></script>
   <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>
