@@ -165,16 +165,29 @@ Fernsehprogramm wird ignoriert.
 
 ## So geht's
 
-1. Oben auf der Übersicht auf **„Sendungen verwalten →"** klicken
-   (oder direkt http://127.0.0.1:5000/einstellungen öffnen).
+1. Oben auf der Übersicht auf **„Sendungen verwalten"** klicken (am Handy
+   heißt der Knopf „Verwalten"), oder direkt
+   http://127.0.0.1:5000/einstellungen öffnen.
 2. In der Liste bekannter Reality-Formate die **Häkchen setzen oder
-   entfernen**.
-3. Unten auf **„Speichern"** klicken. **Ohne diesen Klick ist nichts
-   gespeichert.**
+   entfernen**. Über der Liste hilft das **Suchfeld** („bach" zeigt nur noch
+   die Bachelor-Formate); daneben steht, wie viele ausgewählt sind, und
+   **„nur ausgewählte"** zeigt nur deine angehakten Sendungen.
+3. Sobald du etwas geändert hast, erscheint unten eine Leiste
+   **„… Änderungen nicht gespeichert"**. Dort auf **„Speichern"** klicken
+   (oder auf den Knopf unter der Liste). **Ohne diesen Klick ist nichts
+   gespeichert.** „Verwerfen" setzt alles auf den gespeicherten Stand zurück.
+
+Verlässt du die Seite mit ungespeicherten Änderungen, fragt der Browser
+vorher nach.
 
 Nach dem Speichern läuft automatisch ein neuer Datenabruf (1–2 Minuten, im
 Hintergrund). Die Übersicht zeigt danach direkt den neuen Stand — die App
 muss dafür nicht neu gestartet werden.
+
+Oben auf der Seite springt eine Leiste direkt zu den Abschnitten
+**Sendungen**, **Streaming (TMDB)**, **Ausgeblendet**, **Ausgeschlossen** (die
+beiden nur, wenn es dort etwas gibt) und **Sicherung**. Auf einem breiten
+Bildschirm stehen die Abschnitte unter der Liste nebeneinander.
 
 ## Eine eigene Sendung ergänzen
 
@@ -186,8 +199,8 @@ Läuft dein Format nicht in der Vorschlagsliste:
 3. Optional **alternative Schreibweisen** ergänzen, mit Komma getrennt. Das
    lohnt sich bei Formaten, die mal mit und mal ohne Zusatz laufen — etwa
    `Der Bachelor` mit dem Alias `Bachelor`.
-4. Auf **„Hinzufügen"** klicken. Die Sendung erscheint sofort angehakt in der
-   Liste.
+4. Auf **„Hinzufügen"** klicken oder **Enter** drücken. Die Sendung erscheint
+   sofort angehakt und farbig hervorgehoben in der Liste.
 5. Schritte 2–4 beliebig oft wiederholen, wenn du mehrere ergänzen willst.
 6. Zum Schluss **einmal** auf **„Speichern"**.
 
@@ -415,8 +428,8 @@ Ohne Schlüssel funktioniert alles andere wie bisher.
 
 ## Einrichten — wenn die Streaming-Info-App auf demselben Rechner läuft
 
-1. Oben auf **„Sendungen verwalten →"**.
-2. Nach unten zum Abschnitt **„Streaming-Starts (TMDB)"**.
+1. Oben auf **„Sendungen verwalten"**.
+2. Oben in der Sprungleiste auf **„Streaming (TMDB)"** klicken.
 3. Auf **„Schlüssel aus Streaming-Info übernehmen"** klicken.
 
 Der Knopf erscheint nur, wenn die Streaming-Info-App am üblichen Ort installiert
@@ -468,10 +481,10 @@ neu.
 
 ## So geht's
 
-1. Oben auf der Übersicht auf **„Sendungen verwalten →"**.
+1. Oben auf der Übersicht auf **„Sendungen verwalten"**.
 2. Falls du gerade etwas geändert hast: erst auf **„Speichern"**. Gesichert
    wird immer der *gespeicherte* Stand.
-3. Ganz nach unten scrollen zum Abschnitt **„Sicherung"**.
+3. Oben in der Sprungleiste auf **„Sicherung"** klicken (oder nach unten scrollen).
 4. Auf **„Sicherung erstellen"** klicken.
 
 Der Browser lädt eine Datei namens `reality-tv-programm-2026-09-28.json`
@@ -492,8 +505,8 @@ eine Sicherung aber Pflicht — sonst ist die Liste weg.
 Damit holst du deine Sendungsliste zurück — auf denselben Rechner nach einem
 Missgeschick oder auf einen neuen.
 
-1. Oben auf der Übersicht auf **„Sendungen verwalten →"**.
-2. Ganz nach unten zum Abschnitt **„Sicherung einspielen"**.
+1. Oben auf der Übersicht auf **„Sendungen verwalten"**.
+2. Oben in der Sprungleiste auf **„Sicherung"** klicken, dort steht der Teil **„Sicherung einspielen"**.
 3. Auf **„Datei auswählen"** klicken und deine
    `reality-tv-programm-….json` heraussuchen. Sie darf überall liegen:
    *Downloads*, USB-Stick, Netzlaufwerk — es öffnet sich der normale
@@ -761,7 +774,9 @@ Flask, erreichbar unter **Port 5000**:
 
 - `/` — Programmübersicht, liest ausschließlich aus der Datenbank
 - `/einstellungen` — verwaltet `config/reality_shows.json`; die Vorschläge
-  kommen aus `webapp/vorschlaege.py`
+  kommen aus `webapp/vorschlaege.py`. Suche, Zähler, Enter beim Hinzufügen und
+  die Speichern-Leiste macht `webapp/static/einstellungen.js`; ohne JavaScript
+  bleibt es bei Liste + Speichern-Knopf
 - `/aktualisieren` (POST) — stößt `scraper/run.py` als Hintergrundprozess an
   (Knopf „Aktualisieren"; läuft auch beim Speichern der Sendungsliste
   und einmal beim Start der App)

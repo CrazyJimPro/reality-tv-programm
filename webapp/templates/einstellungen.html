@@ -15,15 +15,26 @@
     })();
   </script>
 </head>
-<body>
+<body class="einstellungen-seite">
   <header>
-    <h1>Sendungen verwalten <span class="version" title="Installierte Version">v{{ version }}</span></h1>
-    <p class="subtitle">Vorschläge an-/abwählen, eigene Sendungen mit "Hinzufügen" ergänzen (beliebig oft wiederholbar) und erst zum Schluss einmal "Speichern" — das stößt dann sofort einen neuen Datenabruf an.</p>
+    <div class="kopf-text">
+      <h1>Sendungen verwalten <span class="version" title="Installierte Version">v{{ version }}</span></h1>
+      <p class="subtitle">Vorschläge an-/abwählen, eigene Sendungen mit „Hinzufügen“ ergänzen und zum Schluss einmal „Speichern“ — das stößt sofort einen neuen Datenabruf an.</p>
+    </div>
     <nav class="nav-back">
       <a href="{{ url_for('index') }}">&larr; zurück zur Übersicht</a>
       <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten"></button>
     </nav>
   </header>
+
+  {# Sprungleiste zu den Abschnitten der Seite #}
+  <nav class="sprung-leiste" aria-label="Abschnitte">
+    <a href="#sendungen">Sendungen</a>
+    <a href="#tmdb">Streaming (TMDB)</a>
+    {% if ausgeblendet %}<a href="#ausgeblendet">Ausgeblendet <span class="sprung-zahl">{{ ausgeblendet|length }}</span></a>{% endif %}
+    {% if ausgeschlossen %}<a href="#ausgeschlossen">Ausgeschlossen <span class="sprung-zahl">{{ ausgeschlossen|length }}</span></a>{% endif %}
+    <a href="#sicherung">Sicherung</a>
+  </nav>
 
   {% if gespeichert %}
     <p class="gespeichert-hinweis">Gespeichert. Die Programmdaten werden gerade im Hintergrund neu geholt (1-2 Minuten) — danach zeigt die Übersicht den neuen Stand.</p>
@@ -37,196 +48,159 @@
     <p class="fehler-hinweis">{{ fehler }}</p>
   {% endif %}
 
-  <form method="post" id="einstellungen-form" onsubmit="this.querySelector('button[type=submit]').disabled=true; this.querySelector('button[type=submit]').textContent='Wird gespeichert ...';">
-    <section class="show-liste" id="show-liste">
-      {% for show in shows %}
-        <label class="show-checkbox">
-          <input type="checkbox" name="shows" value="{{ show.name }}" {% if show.name in aktive_namen %}checked{% endif %}>
-          <input type="hidden" name="aliases__{{ show.name }}" value="{{ show.aliases|join(',') }}">
-          {{ show.name }}
-          {% if show.aliases %}<span class="show-aliases">({{ show.aliases|join(', ') }})</span>{% endif %}
-        </label>
-      {% endfor %}
-    </section>
+  <form method="post" id="einstellungen-form">
+    <section class="neue-show sendungen-karte" id="sendungen">
+      <h2>Deine Sendungen</h2>
+      {# Suche und Zaehler - blendet einstellungen.js ein, ohne JavaScript
+         bleibt es bei der einfachen Liste #}
+      <div class="liste-werkzeuge" id="liste-werkzeuge" hidden>
+        <input type="search" id="liste-suche" placeholder="Sendung suchen …" aria-label="Sendung in der Liste suchen" autocomplete="off">
+        <label class="filter-pille"><input type="checkbox" id="nur-ausgewaehlte"><span>nur ausgewählte</span></label>
+        <span class="liste-zaehler" id="liste-zaehler" aria-live="polite"></span>
+      </div>
+      <div class="show-liste" id="show-liste">
+        {% for show in shows %}
+          <label class="show-checkbox">
+            <input type="checkbox" name="shows" value="{{ show.name }}" {% if show.name in aktive_namen %}checked{% endif %}>
+            <input type="hidden" name="aliases__{{ show.name }}" value="{{ show.aliases|join(',') }}">
+            {{ show.name }}
+            {% if show.aliases %}<span class="show-aliases">({{ show.aliases|join(', ') }})</span>{% endif %}
+          </label>
+        {% endfor %}
+      </div>
+      <p class="keine-sendung" id="liste-leer" hidden>Keine Sendung passt zur Suche.</p>
 
-    <section class="neue-show">
-      <h2>Eigene Sendung hinzufügen</h2>
-      <p class="hinweis">Name eingeben, auf "Hinzufügen" klicken — erscheint sofort oben in der Liste (angehakt). Beliebig oft wiederholbar, bevor du am Ende einmal speicherst.</p>
+      <h3 class="unter-titel">Eigene Sendung hinzufügen</h3>
+      <p class="hinweis">Name eingeben, „Hinzufügen“ klicken oder Enter drücken — erscheint sofort angehakt in der Liste. Beliebig oft wiederholbar, bevor du am Ende einmal speicherst.</p>
       <div class="neue-show-felder">
-        <input type="text" id="neuer-name" placeholder="Name der Sendung">
-        <input type="text" id="neue-aliases" placeholder="Alternative Schreibweisen, mit Komma getrennt (optional)">
+        <input type="text" id="neuer-name" placeholder="Name der Sendung" autocomplete="off">
+        <input type="text" id="neue-aliases" placeholder="Alternative Schreibweisen, mit Komma getrennt (optional)" autocomplete="off">
         <button type="button" id="hinzufuegen-button" class="hinzufuegen-button">Hinzufügen</button>
       </div>
-    </section>
 
-    <button type="submit" class="speichern-button">Speichern</button>
+      <button type="submit" class="speichern-button" id="speichern-unten">Speichern</button>
+    </section>
   </form>
 
-  <!-- Ausserhalb des Formulars oben, eigenes Formular -->
-  <section class="neue-show" id="tmdb">
-    <h2>Streaming-Starts (TMDB)</h2>
-    <p class="hinweis">
-      Mit einem kostenlosen Schlüssel von <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>
-      zeigt die Übersicht zusätzlich Starts bei Joyn, Prime Video, Netflix &amp; Co., die in keinem Fernsehprogramm stehen,
-      Staffelstarts nach den zwei Wochen („Demnächst“) und kommende Reality-Formate unter „Neu entdeckt“.
-      Der Schlüssel bleibt auf diesem Rechner und kommt nicht in die Sicherung.
-    </p>
-    {% if tmdb_fehler %}
-      <p class="fehler-hinweis">{{ tmdb_fehler }}</p>
-    {% endif %}
-    {% if tmdb_meldung == 'gespeichert' %}
-      <p class="gespeichert-hinweis">Schlüssel gespeichert und geprüft. Die Programmdaten werden gerade neu geholt (1-2 Minuten).</p>
-    {% elif tmdb_meldung == 'entfernt' %}
-      <p class="gespeichert-hinweis">Schlüssel entfernt. TMDB wird nicht mehr abgefragt.</p>
-    {% endif %}
-    {% if tmdb_endung %}
-      <p>Schlüssel ist eingetragen (endet auf <code>…{{ tmdb_endung }}</code>).</p>
-    {% endif %}
-    {% if tmdb_aus_streaming_info %}
+  {# Feste Leiste unten, sobald etwas nicht gespeichert ist (einstellungen.js).
+     Der Speichern-Knopf gehoert per form-Attribut zum Formular oben. #}
+  <div class="speichern-leiste" id="speichern-leiste" role="region" aria-label="Ungespeicherte Änderungen" hidden>
+    <span id="speichern-text"></span>
+    <span class="speichern-leiste-knoepfe">
+      <button type="button" class="ausblenden-button" id="verwerfen-knopf">Verwerfen</button>
+      <button type="submit" form="einstellungen-form" class="speichern-button" id="speichern-leiste-knopf">Speichern</button>
+    </span>
+  </div>
+
+  <!-- Alle weiteren Abschnitte bewusst ausserhalb des Formulars oben: ein
+       Knopf darin wuerde beim Anklicken die Sendungsauswahl abschicken. -->
+  <div class="karten-raster">
+    <section class="neue-show" id="tmdb">
+      <h2>Streaming-Starts (TMDB)</h2>
+      <p class="hinweis">
+        Mit einem kostenlosen Schlüssel von <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a>
+        zeigt die Übersicht zusätzlich Starts bei Joyn, Prime Video, Netflix &amp; Co., die in keinem Fernsehprogramm stehen,
+        Staffelstarts nach den zwei Wochen („Demnächst“) und kommende Reality-Formate unter „Neu entdeckt“.
+        Der Schlüssel bleibt auf diesem Rechner und kommt nicht in die Sicherung.
+      </p>
+      {% if tmdb_fehler %}
+        <p class="fehler-hinweis">{{ tmdb_fehler }}</p>
+      {% endif %}
+      {% if tmdb_meldung == 'gespeichert' %}
+        <p class="gespeichert-hinweis">Schlüssel gespeichert und geprüft. Die Programmdaten werden gerade neu geholt (1-2 Minuten).</p>
+      {% elif tmdb_meldung == 'entfernt' %}
+        <p class="gespeichert-hinweis">Schlüssel entfernt. TMDB wird nicht mehr abgefragt.</p>
+      {% endif %}
+      {% if tmdb_endung %}
+        <p>Schlüssel ist eingetragen (endet auf <code>…{{ tmdb_endung }}</code>).</p>
+      {% endif %}
+      {% if tmdb_aus_streaming_info %}
+        <form method="post" action="{{ url_for('tmdb_schluessel') }}">
+          <input type="hidden" name="aktion" value="uebernehmen">
+          <p class="hinweis">Auf diesem Rechner ist die Streaming-Info-App mit einem TMDB-Schlüssel eingerichtet.</p>
+          <button type="submit" class="hinzufuegen-button">Schlüssel aus Streaming-Info übernehmen</button>
+        </form>
+      {% endif %}
       <form method="post" action="{{ url_for('tmdb_schluessel') }}">
-        <input type="hidden" name="aktion" value="uebernehmen">
-        <p class="hinweis">Auf diesem Rechner ist die Streaming-Info-App mit einem TMDB-Schlüssel eingerichtet.</p>
-        <button type="submit" class="hinzufuegen-button">Schlüssel aus Streaming-Info übernehmen</button>
+        <input type="hidden" name="aktion" value="speichern">
+        <div class="neue-show-felder" style="margin-top:0.8rem">
+          <input type="text" name="schluessel" placeholder="{{ 'Neuen Schlüssel eintragen' if tmdb_endung else 'TMDB-API-Schlüssel (v3) eintragen' }}" autocomplete="off" spellcheck="false">
+          <button type="submit" class="hinzufuegen-button">Schlüssel speichern</button>
+        </div>
       </form>
-    {% endif %}
-    <form method="post" action="{{ url_for('tmdb_schluessel') }}">
-      <input type="hidden" name="aktion" value="speichern">
-      <div class="neue-show-felder" style="margin-top:0.8rem">
-        <input type="text" name="schluessel" placeholder="{{ 'Neuen Schlüssel eintragen' if tmdb_endung else 'TMDB-API-Schlüssel (v3) eintragen' }}" autocomplete="off" spellcheck="false">
-        <button type="submit" class="hinzufuegen-button">Schlüssel speichern</button>
-      </div>
-    </form>
-    {% if tmdb_endung %}
-      <form method="post" action="{{ url_for('tmdb_schluessel') }}" onsubmit="return confirm('TMDB-Schlüssel entfernen?');" style="margin-top:0.6rem">
-        <input type="hidden" name="aktion" value="entfernen">
-        <button type="submit" class="ausblenden-button">Schlüssel entfernen</button>
+      {% if tmdb_endung %}
+        <form method="post" action="{{ url_for('tmdb_schluessel') }}" onsubmit="return confirm('TMDB-Schlüssel entfernen?');" style="margin-top:0.6rem">
+          <input type="hidden" name="aktion" value="entfernen">
+          <button type="submit" class="ausblenden-button">Schlüssel entfernen</button>
+        </form>
+      {% endif %}
+    </section>
+
+    {# Sicherung erstellen und einspielen in einer Karte #}
+    <section class="neue-show" id="sicherung">
+      <h2>Sicherung</h2>
+      <p class="hinweis">
+        Sichert deine Sendungsliste samt der unter „Neu entdeckt“ ausgeblendeten und der als „Gehört nicht dazu“
+        ausgeschlossenen Titel — das Einzige am Tool, was Handarbeit ist. Die Sendetermine selbst sind nicht dabei,
+        die holt der nächste Datenabruf ohnehin neu. Gesichert wird der <strong>gespeicherte</strong> Stand.
+      </p>
+      <a class="hinzufuegen-button" href="{{ url_for('sicherung_herunterladen') }}">Sicherung erstellen</a>
+
+      <h3 class="unter-titel" id="sicherung-einspielen">Sicherung einspielen</h3>
+      <p class="hinweis">
+        Ersetzt die aktuelle Sendungsliste durch den Stand aus einer Sicherungsdatei.
+        Die Datei darf überall liegen — Downloads, USB-Stick, Netzlaufwerk.
+        Der bisherige Stand wird vorher automatisch als
+        <code>vor-wiederherstellung-&lt;Zeit&gt;.json</code> im Ordner <code>config</code> abgelegt
+        und lässt sich genauso wieder einspielen.
+      </p>
+      <form method="post" action="{{ url_for('sicherung_einspielen') }}" enctype="multipart/form-data"
+            onsubmit="return confirm('Die aktuelle Sendungsliste wird durch die Sicherung ersetzt. Fortfahren?');">
+        <div class="neue-show-felder">
+          <input type="file" name="datei" accept=".json,application/json" required>
+          <button type="submit" class="hinzufuegen-button">Sicherung einspielen</button>
+        </div>
       </form>
+    </section>
+
+    {% if ausgeblendet %}
+      <section class="neue-show" id="ausgeblendet">
+        <h2>Ausgeblendete Vorschläge</h2>
+        <p class="hinweis">Diese Titel hast du unter „Neu entdeckt“ ausgeblendet. „Wieder anzeigen“ holt sie dorthin zurück.</p>
+        <ul class="entdeckt-liste">
+          {% for titel in ausgeblendet %}
+            <li class="entdeckt-eintrag">
+              <span class="entdeckt-info">{{ titel }}</span>
+              <form method="post" action="{{ url_for('entdeckung_einblenden') }}">
+                <input type="hidden" name="titel" value="{{ titel }}">
+                <button type="submit" class="ausblenden-button">Wieder anzeigen</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
     {% endif %}
-  </section>
 
-  {% if ausgeblendet %}
-    <!-- Ausserhalb des Formulars oben: jeder Knopf schickt sein eigenes kleines Formular ab. -->
-    <section class="neue-show" id="ausgeblendet">
-      <h2>Ausgeblendete Vorschläge</h2>
-      <p class="hinweis">Diese Titel hast du unter „Neu entdeckt“ ausgeblendet. „Wieder anzeigen“ holt sie dorthin zurück.</p>
-      <ul class="entdeckt-liste">
-        {% for titel in ausgeblendet %}
-          <li class="entdeckt-eintrag">
-            <span class="entdeckt-info">{{ titel }}</span>
-            <form method="post" action="{{ url_for('entdeckung_einblenden') }}">
-              <input type="hidden" name="titel" value="{{ titel }}">
-              <button type="submit" class="ausblenden-button">Wieder anzeigen</button>
-            </form>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% endif %}
+    {% if ausgeschlossen %}
+      <section class="neue-show" id="ausgeschlossen">
+        <h2>Ausgeschlossene Titel</h2>
+        <p class="hinweis">Diese Titel hast du in der Übersicht mit „Gehört nicht dazu“ entfernt. „Wieder zulassen“ holt sie zurück (sofort, ohne neuen Abruf).</p>
+        <ul class="entdeckt-liste">
+          {% for titel in ausgeschlossen %}
+            <li class="entdeckt-eintrag">
+              <span class="entdeckt-info">{{ titel }}</span>
+              <form method="post" action="{{ url_for('sendung_zulassen') }}">
+                <input type="hidden" name="titel" value="{{ titel }}">
+                <button type="submit" class="ausblenden-button">Wieder zulassen</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+  </div>
 
-  {% if ausgeschlossen %}
-    <section class="neue-show" id="ausgeschlossen">
-      <h2>Ausgeschlossene Titel</h2>
-      <p class="hinweis">Diese Titel hast du in der Übersicht mit „Gehört nicht dazu“ entfernt. „Wieder zulassen“ holt sie zurück (sofort, ohne neuen Abruf).</p>
-      <ul class="entdeckt-liste">
-        {% for titel in ausgeschlossen %}
-          <li class="entdeckt-eintrag">
-            <span class="entdeckt-info">{{ titel }}</span>
-            <form method="post" action="{{ url_for('sendung_zulassen') }}">
-              <input type="hidden" name="titel" value="{{ titel }}">
-              <button type="submit" class="ausblenden-button">Wieder zulassen</button>
-            </form>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% endif %}
-
-  <!-- Bewusst ausserhalb des Formulars oben: ein Knopf darin wuerde beim
-       Anklicken die Sendungsauswahl abschicken. -->
-  <section class="neue-show">
-    <h2>Sicherung</h2>
-    <p class="hinweis">
-      Sichert deine Sendungsliste (samt der unter „Neu entdeckt“ ausgeblendeten und der als „Gehört nicht dazu“ ausgeschlossenen Titel) — das Einzige am Tool, was Handarbeit ist.
-      Die Sendetermine selbst sind nicht dabei, die holt der nächste Datenabruf ohnehin neu.
-      Gesichert wird der <strong>gespeicherte</strong> Stand: falls oben noch etwas offen ist, erst „Speichern“.
-    </p>
-    <a class="hinzufuegen-button" href="{{ url_for('sicherung_herunterladen') }}">Sicherung erstellen</a>
-  </section>
-
-  <section class="neue-show" id="sicherung-einspielen">
-    <h2>Sicherung einspielen</h2>
-    <p class="hinweis">
-      Ersetzt die aktuelle Sendungsliste durch den Stand aus einer Sicherungsdatei.
-      Die Datei darf überall liegen — Downloads, USB-Stick, Netzlaufwerk.
-      Der bisherige Stand wird vorher automatisch als
-      <code>vor-wiederherstellung-&lt;Zeit&gt;.json</code> im Ordner <code>config</code> abgelegt
-      und lässt sich genauso wieder einspielen.
-    </p>
-    <form method="post" action="{{ url_for('sicherung_einspielen') }}" enctype="multipart/form-data"
-          onsubmit="return confirm('Die aktuelle Sendungsliste wird durch die Sicherung ersetzt. Fortfahren?');">
-      <div class="neue-show-felder">
-        <input type="file" name="datei" accept=".json,application/json" required>
-        <button type="submit" class="hinzufuegen-button">Sicherung einspielen</button>
-      </div>
-    </form>
-  </section>
-
-  <script>
-    document.getElementById('hinzufuegen-button').addEventListener('click', function () {
-      var nameInput = document.getElementById('neuer-name');
-      var aliasesInput = document.getElementById('neue-aliases');
-      var name = nameInput.value.trim();
-      if (!name) { nameInput.focus(); return; }
-      var aliases = aliasesInput.value.trim();
-
-      var liste = document.getElementById('show-liste');
-      var checkboxen = Array.prototype.slice.call(liste.querySelectorAll('input[name="shows"]'));
-      var treffer = checkboxen.find(function (cb) { return cb.value.toLowerCase() === name.toLowerCase(); });
-
-      if (treffer) {
-        treffer.checked = true;
-      } else {
-        var label = document.createElement('label');
-        label.className = 'show-checkbox';
-
-        var checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.name = 'shows';
-        checkbox.value = name;
-        checkbox.checked = true;
-
-        var hiddenAliases = document.createElement('input');
-        hiddenAliases.type = 'hidden';
-        hiddenAliases.name = 'aliases__' + name;
-        hiddenAliases.value = aliases;
-
-        label.appendChild(checkbox);
-        label.appendChild(hiddenAliases);
-        label.appendChild(document.createTextNode(' ' + name + ' '));
-
-        if (aliases) {
-          var span = document.createElement('span');
-          span.className = 'show-aliases';
-          span.textContent = '(' + aliases + ')';
-          label.appendChild(span);
-        }
-
-        liste.appendChild(label);
-
-        var labels = Array.prototype.slice.call(liste.querySelectorAll('.show-checkbox'));
-        labels.sort(function (a, b) {
-          var an = a.querySelector('input[type="checkbox"]').value;
-          var bn = b.querySelector('input[type="checkbox"]').value;
-          return an.localeCompare(bn, 'de', { sensitivity: 'base' });
-        });
-        labels.forEach(function (l) { liste.appendChild(l); });
-      }
-
-      nameInput.value = '';
-      aliasesInput.value = '';
-      nameInput.focus();
-    });
-  </script>
+  <script src="{{ url_for('static', filename='einstellungen.js') }}"></script>
   <script src="{{ url_for('static', filename='theme.js') }}"></script>
 </body>
 </html>

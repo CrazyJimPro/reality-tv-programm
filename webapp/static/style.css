@@ -918,6 +918,111 @@ details.entdeckt-kasten > .hinweis { padding: 0 0.75rem; }
 
 .speichern-button { margin-top: 1.25rem; font-size: 1rem; }
 
+/* Sprungleiste oben auf "Sendungen verwalten" */
+.sprung-leiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.25rem 0 1.25rem;
+}
+.sprung-leiste a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  padding: 0.35rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--glas-rand);
+  background: var(--glas);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  color: var(--fg);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+.sprung-leiste a:hover { border-color: var(--aktiv-rand); }
+.sprung-zahl {
+  font-size: 0.72rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--flaeche);
+  color: var(--muted);
+}
+
+/* Abschnitte nicht unter den oberen Rand springen lassen */
+.einstellungen-seite section[id],
+.einstellungen-seite h3[id] { scroll-margin-top: 1rem; }
+
+.sendungen-karte { margin-top: 0; }
+.sendungen-karte .show-liste { margin: 0.9rem 0 0.5rem; }
+.unter-titel { font-size: 1rem; font-weight: 800; margin: 1.5rem 0 0.4rem; }
+
+/* Suche + Zaehler ueber der Sendungsliste */
+.liste-werkzeuge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.6rem;
+}
+.liste-werkzeuge input[type="search"] {
+  flex: 1 1 240px;
+  max-width: 26rem;
+  min-height: 40px;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--flaeche-rand);
+  background: var(--flaeche);
+  color: var(--fg);
+  font: 500 0.92rem 'Manrope', sans-serif;
+}
+.liste-zaehler { color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+.liste-werkzeuge .filter-pille { font-size: 0.85rem; }
+
+/* gerade per "Hinzufuegen" ergaenzt, noch nicht gespeichert */
+.show-checkbox.neu-hinzugefuegt { border-color: var(--aktiv-rand); background: var(--aktiv-bg); }
+
+/* Feste Leiste unten bei ungespeicherten Aenderungen */
+.speichern-leiste {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: min(640px, calc(100vw - 2rem));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  padding: 0.6rem 0.7rem 0.6rem 1.3rem;
+  border-radius: 28px;
+  background: var(--glas);
+  border: 1px solid var(--aktiv-rand);
+  backdrop-filter: blur(var(--blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(1.4);
+  box-shadow: 0 12px 36px rgba(15,23,42,0.25);
+  font-weight: 700;
+}
+.speichern-leiste-knoepfe { display: flex; gap: 0.5rem; }
+.speichern-leiste .speichern-button { margin-top: 0; }
+/* Platz, damit die Leiste nichts Wichtiges unten verdeckt */
+body.mit-speichern-leiste { padding-bottom: 7rem; }
+
+/* Die Karten unter der Sendungsliste: ab breitem Fenster zweispaltig */
+.karten-raster {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  align-items: start;
+}
+.karten-raster > .neue-show { margin-top: 0; }
+@media (min-width: 1000px) {
+  .karten-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* Datei-Auswahl beim Einspielen einer Sicherung */
 input[type="file"] {
   display: block;
