@@ -290,8 +290,19 @@ def _status_aufbereiten(status: list[dict]) -> list[dict]:
                 alter = jetzt - zeitpunkt
                 eintrag["veraltet"] = alter > timedelta(hours=VERALTET_AB_STUNDEN)
                 eintrag["alter_text"] = _alter_text(alter)
+                eintrag["alter"] = alter
+        # Fehler oder veraltet: steht in der Uebersicht einzeln sichtbar da,
+        # alles andere nur im Aufklapper
+        eintrag["problem"] = not eintrag["erfolg_text"] or eintrag["veraltet"]
         aufbereitet.append(eintrag)
     return aufbereitet
+
+
+def _status_alter(status: list[dict]) -> str:
+    """Altersangabe fuer die Zusammenfassung "Alle Quellen aktuell" - die
+    der aeltesten Quelle, damit die Zeile nichts schoent."""
+    alter = [e["alter"] for e in status if e.get("alter") is not None]
+    return _alter_text(max(alter)) if alter else ""
 
 
 def _woche_gruppieren(rows: list[dict], ab: date, bis: date) -> list[dict]:
@@ -339,6 +350,10 @@ def index():
     uebernaechste_woche = _woche_gruppieren(rows, uebernaechste_woche_ab, uebernaechste_woche_bis)
 
     status = _status_aufbereiten(hole_quellen_status(db_pfad=DB_PFAD))
+    zeitraum = {
+        "woche1": _zeitraum_text(heute, naechste_woche_bis),
+        "woche2": _zeitraum_text(uebernaechste_woche_ab, uebernaechste_woche_bis),
+    }
 
     # Einmaliger Wegweiser nach einer frischen Installation. Es gibt kein
     # Installationsprogramm, das beim Aufsetzen nach einer vorhandenen
@@ -368,6 +383,8 @@ def index():
         naechste_woche=naechste_woche,
         uebernaechste_woche=uebernaechste_woche,
         status=status,
+        status_alter=_status_alter(status),
+        zeitraum=zeitraum,
         heute=heute,
         anzahl_gesamt=len(rows),
         scrape=_scrape_status,
@@ -386,6 +403,13 @@ def index():
         bild=lambda titel, art="backdrop": tmdb.bild_url(bilder, titel, art),
         heute_iso=heute.isoformat(),
     )
+
+
+def _zeitraum_text(ab: date, bis: date) -> str:
+    """"6.–12. Nov" bzw. "28. Nov – 4. Dez" fuer die Reiter."""
+    if ab.month == bis.month:
+        return f"{ab.day}.–{bis.day}. {MONATE[bis.month - 1][:3]}"
+    return f"{ab.day}. {MONATE[ab.month - 1][:3]} – {bis.day}. {MONATE[bis.month - 1][:3]}"
 
 
 def _show_namen(config: dict) -> list[str]:

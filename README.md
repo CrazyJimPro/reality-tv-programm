@@ -116,14 +116,20 @@ nur die Daten auf und holt das Browserfenster zurück.
 | Windows | `%USERPROFILE%\reality-tv-programm\start.bat` |
 | Linux | `~/reality-tv-programm/start.sh` |
 
-**Beenden:** Oben auf der Seite den Knopf **„Beenden"** anklicken. Erst dann
+**Beenden:** Oben auf der Seite den roten Knopf **„Beenden"** (⏻) anklicken. Erst dann
 läuft nichts mehr im Hintergrund — kein Task-Manager nötig, auch wenn ohne
 sichtbares Fenster gestartet wurde. Nur das Browserfenster zu schließen
 genügt **nicht**; die App läuft dann weiter. Schlimm ist das nicht, sie
 kostet nur unnötig Speicher.
 
-**Zwischendurch aktualisieren:** Der Knopf **„Jetzt aktualisieren"** oben auf
-der Übersicht holt die Programmdaten neu, ohne die App neu zu starten.
+**Zwischendurch aktualisieren:** Der Knopf **„Aktualisieren"** (↻) oben auf
+der Übersicht holt die Programmdaten neu, ohne die App neu zu starten. Solange
+der Abruf läuft, dreht sich das Symbol und der Knopf zeigt „Wird aktualisiert …".
+
+**Sind die Daten aktuell?** Unter der Kopfzeile steht im Normalfall nur eine
+kleine Zeile **„✓ Alle 4 Quellen aktuell · vor 2 Stunden"**. Ein Klick darauf
+klappt die Einzelheiten je Quelle auf. Hat eine Quelle einen Fehler oder sind
+ihre Daten älter als einen Tag, steht sie dort einzeln in Gelb oder Rot.
 
 **Welche Version läuft?** Oben in der Kopfzeile steht ein kleines Abzeichen,
 z.B. `v1.4.10`; beim Start landet die Nummer auch in `logs/start.log`. Die
@@ -133,9 +139,13 @@ neueste steht unter
 **Aufbau der Übersicht:** Oben stehen vier Reiter — **„Nächste Woche"**,
 **„Übernächste Woche"**, **„Demnächst"** (Staffelstarts danach) und **„Neu
 entdeckt"** (Formate, die noch nicht in deiner Liste stehen). Die Zahl am Reiter
-sagt, wie viele Einträge dort warten. Der Browser merkt sich, welcher Reiter
+sagt, wie viele Einträge dort warten, unter den Wochen-Reitern steht der
+Zeitraum (z.B. „6.–12. Nov"). Der Browser merkt sich, welcher Reiter
 zuletzt offen war. Daneben sitzen die Schalter für Wiederholungen und
-Gesehenes. Jede Sendung hat ein Vorschaubild, sofern ein
+Gesehenes. Der heutige Tag hat einen farbigen Rand; was heute schon gelaufen
+ist (Startzeit plus 30 Minuten), wird grau und mit „gelaufen" markiert. Tage
+ohne bekannte Sendung stehen nur als schmale Zeile da.
+Jede Sendung hat ein Vorschaubild, sofern ein
 [TMDB-Schlüssel](#streaming-starts-tmdb) eingetragen ist — sonst steht dort ein
 Feld in der Senderfarbe. Hell oder dunkel folgt der Systemeinstellung; der
 runde Knopf oben rechts schaltet um.
@@ -231,7 +241,7 @@ nachher (Love Island entfernt):
 ```
 
 Änderungen von Hand wirken sich erst beim nächsten Datenabruf aus — also beim
-nächsten Start der App oder sofort per **„Jetzt aktualisieren"**.
+nächsten Start der App oder sofort per **„Aktualisieren"**.
 
 </details>
 
@@ -295,10 +305,12 @@ du also denselben Stand.
 ## Wiederholungen erkennen und ausblenden
 
 Läuft dieselbe Folge mehrmals, steht bei allen Terminen bis auf einen ein
-gestricheltes **„Wiederholung"**. Fährst du mit der Maus darüber, steht da,
-wann die Hauptausstrahlung läuft.
+gestricheltes **„Wiederholung"**. Unter dem Titel steht dazu, wann die
+Erstausstrahlung läuft (z.B. „Wiederholung · Erstausstrahlung Di 10.11., 20:15
+auf RTL2") — auch am Handy, wo es keinen Mauszeiger gibt.
 
-Oben in der Leiste mit den Reitern gibt es zwei Schalter:
+Oben in der Leiste mit den Reitern gibt es zwei Schalter in Pillenform. Ein
+Klick schaltet um; eingeschaltet ist die Pille farbig hinterlegt:
 
 - **„Wiederholungen ausblenden"** — zeigt jede Folge nur noch einmal
 - **„Gesehenes ausblenden"** — blendet abgehakte Folgen aus
@@ -522,7 +534,7 @@ stehen.
   [Sendungen verwalten](#sendungen-verwalten).
 - **Steht oben ein Fehler bei einer Quelle?** Dann kam dieser Abruf nicht
   durch. Die zuletzt erfolgreich geholten Daten bleiben erhalten; ein Klick
-  auf „Jetzt aktualisieren" versucht es erneut. Einzelheiten stehen in
+  auf „Aktualisieren" versucht es erneut. Einzelheiten stehen in
   `logs/scraper.log`.
 
 ## Der Browser zeigt „Verbindung fehlgeschlagen"
@@ -694,7 +706,7 @@ Flask, erreichbar unter **Port 5000**:
 - `/einstellungen` — verwaltet `config/reality_shows.json`; die Vorschläge
   kommen aus `webapp/vorschlaege.py`
 - `/aktualisieren` (POST) — stößt `scraper/run.py` als Hintergrundprozess an
-  (Knopf „Jetzt aktualisieren"; läuft auch beim Speichern der Sendungsliste
+  (Knopf „Aktualisieren"; läuft auch beim Speichern der Sendungsliste
   und einmal beim Start der App)
 - `/scrape-status` (JSON) — meldet, ob ein Lauf noch läuft; damit lädt sich
   die Übersicht selbst neu, sobald er fertig ist

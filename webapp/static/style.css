@@ -259,7 +259,42 @@ header h1 {
 .theme-toggle:hover,
 .reiter:hover { border-color: var(--aktiv-rand); }
 
-.aktualisieren-form button:disabled { opacity: 0.6; cursor: wait; }
+.aktualisieren-form button:disabled { opacity: 0.75; cursor: wait; }
+
+/* Strichsymbole in den Knoepfen (Farbe = Schriftfarbe) */
+.icon {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.verwalten-button,
+.aktualisieren-form button,
+.beenden-form button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nur-schmal { display: none; }
+
+/* Drehsymbol, solange ein Abruf laeuft */
+.aktualisieren-form button.laeuft .icon { animation: drehen 1s linear infinite; }
+
+@keyframes drehen { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .aktualisieren-form button.laeuft .icon { animation-duration: 3s; }
+}
+
+/* Beenden sieht bewusst anders aus als Aktualisieren */
+.beenden-form button { color: var(--fehler); border-color: rgba(244,63,94,0.35); }
+.beenden-form button:hover { background: rgba(244,63,94,0.12); border-color: var(--fehler); }
 
 .hinzufuegen-button {
   background: var(--akzent-verlauf);
@@ -277,6 +312,9 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
   padding: 0;
   font-size: 1.2rem;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* --- Hinweise ----------------------------------------------------------- */
@@ -312,6 +350,23 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
   box-shadow: none;
 }
 
+/* Zusammenfassung "Alle Quellen aktuell" mit Aufklapper */
+.status-details { display: contents; }
+.status-details > summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.status-details > summary::-webkit-details-marker { display: none; }
+.status-details > summary::after { content: " ▾"; opacity: 0.7; }
+.status-details[open] > summary::after { content: " ▴"; }
+.status-liste {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .status-ok { color: var(--ok-fg); }
 .status-fehler { color: var(--fehler); }
 /* Quelle hat zwar irgendwann funktioniert, der letzte Erfolg ist aber
@@ -332,7 +387,9 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
-  border-radius: 999px;
+  /* 28px = halbe Hoehe einer einzeiligen Leiste: wirkt einzeilig wie eine
+     Pille und bleibt umgebrochen trotzdem eine saubere Karte */
+  border-radius: 28px;
   padding: 6px;
   margin-bottom: 1.25rem;
 }
@@ -364,16 +421,54 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
   font-size: 0.75rem;
 }
 
+.reiter-text { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.reiter-zeitraum { font-size: 0.7rem; font-weight: 600; opacity: 0.75; }
+
 .anzeige-filter {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1.25rem;
-  padding: 0 1rem;
-  font-size: 0.9rem;
-  color: var(--muted);
+  gap: 0.4rem;
+  padding: 0 0.25rem;
+  font-size: 0.85rem;
 }
 
-.anzeige-filter label { display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; min-height: 32px; }
+/* Umschalt-Pillen: die Checkbox bleibt fuer Tastatur/Vorleser da, ist aber
+   unsichtbar - der Zustand zeigt sich an der Pille selbst */
+.filter-pille { position: relative; cursor: pointer; }
+.filter-pille input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.filter-pille span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  padding: 0.35rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--flaeche-rand);
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.filter-pille span::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+}
+.filter-pille:hover span { border-color: var(--aktiv-rand); }
+.filter-pille input:checked + span {
+  background: var(--aktiv-bg);
+  border-color: var(--aktiv-rand);
+  color: var(--fg);
+}
+.filter-pille input:checked + span::before { background: var(--link); border-color: var(--link); }
+.filter-pille input:focus-visible + span { outline: 2px solid var(--link); outline-offset: 2px; }
 
 /* Ohne JavaScript stehen alle Bereiche untereinander, mit Ueberschrift */
 .panel { margin-bottom: 1.5rem; }
@@ -389,7 +484,23 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
   margin-bottom: 1rem;
 }
 
-.tag-leer { padding-block: 0.75rem; }
+/* Leere Tage nur als schmale Zeile */
+.tag-leer {
+  padding: 0.45rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 999px;
+  box-shadow: none;
+  opacity: 0.8;
+}
+.tag-leer .tag-titel { margin: 0; }
+.tag-nichts { font-weight: 600; letter-spacing: 0; text-transform: none; }
+
+/* Heutiger Tag mit Akzentrand */
+.tag-heute {
+  border-color: var(--aktiv-rand);
+  box-shadow: var(--schatten), 0 0 0 1px var(--aktiv-rand);
+}
+.tag-heute > .tag-titel { color: var(--link); }
 
 .tag-titel {
   margin: 0 0 0.4rem;
@@ -513,6 +624,21 @@ a.hinzufuegen-button { display: inline-flex; align-items: center; text-decoratio
 .sendung.ist-gesehen .vorschau,
 .sendung.ist-gesehen .zeitblock,
 .sendung.ist-gesehen .text { opacity: 0.5; }
+
+/* Heute schon gelaufen (uebersicht.js setzt die Klasse) */
+.sendung.vorbei .vorschau,
+.sendung.vorbei .zeitblock,
+.sendung.vorbei .text { opacity: 0.45; filter: grayscale(0.6); }
+.sendung.vorbei .uhrzeit::after {
+  content: "gelaufen";
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wdh-hinweis { font-size: 0.78rem; color: var(--muted); font-style: italic; }
 
 .ohne-wiederholungen .sendung[data-wiederholung="1"],
 .ohne-gesehene .sendung.ist-gesehen { display: none; }
@@ -673,7 +799,17 @@ footer {
 
   header { padding: 1rem 1.1rem; }
 
+  /* Kopfzeile: Aktualisieren/Beenden nur als Symbol, damit alle Knoepfe in
+     eine Zeile passen (Beschriftung steht in aria-label/title) */
+  .nur-breit { display: none; }
+  .nur-schmal { display: inline; }
+  .aktualisieren-form button,
+  .beenden-form button { width: 44px; padding: 0; justify-content: center; }
+  .verwalten-button { padding-inline: 1rem; }
+  header h1 { font-size: 1.3rem; }
+
   .reiter-leiste { border-radius: 20px; }
+  .tag-leer { border-radius: 16px; }
   .reiter { padding: 0.5rem 0.85rem; }
   .anzeige-filter { padding: 0 0.5rem 0.25rem; }
 

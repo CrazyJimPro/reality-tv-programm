@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reality-TV Programm</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script>
     (function () {
@@ -21,14 +22,24 @@
       <p class="subtitle"><span title="{{ sender_liste|join(' · ') }} · RTL+">{{ sender_liste|length }} Sender + RTL+</span> · Stand {{ heute.strftime('%d.%m.%Y') }} · {{ anzahl_gesamt }} Sendungen <span class="version" title="Installierte Version">v{{ version }}</span></p>
     </div>
     <nav class="nav-back">
-      <a href="{{ url_for('einstellungen') }}" class="verwalten-button">Sendungen verwalten</a>
-      <form method="post" action="{{ url_for('aktualisieren') }}" class="aktualisieren-form">
-        <button type="submit" {% if scrape.laeuft %}disabled{% endif %}>Jetzt aktualisieren</button>
+      <a href="{{ url_for('einstellungen') }}" class="verwalten-button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7M17 15v6M14 18h6"/></svg>
+        <span class="nur-breit">Sendungen verwalten</span><span class="nur-schmal">Verwalten</span>
+      </a>
+      <form method="post" action="{{ url_for('aktualisieren') }}" class="aktualisieren-form"
+            onsubmit="var k=this.querySelector('button'); k.classList.add('laeuft'); k.querySelector('.knopf-text').textContent='Wird aktualisiert …';">
+        <button type="submit" title="Programmdaten jetzt neu holen" aria-label="Aktualisieren" {% if scrape.laeuft %}disabled class="laeuft"{% endif %}>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg>
+          <span class="knopf-text nur-breit">{{ 'Wird aktualisiert …' if scrape.laeuft else 'Aktualisieren' }}</span>
+        </button>
       </form>
       <form method="post" action="{{ url_for('beenden') }}" class="beenden-form" onsubmit="return confirm('Reality-TV Programm wirklich beenden?');">
-        <button type="submit">Beenden</button>
+        <button type="submit" title="App beenden – danach läuft nichts mehr im Hintergrund" aria-label="Beenden">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6.3 7.3a8 8 0 1 0 11.4 0"/></svg>
+          <span class="nur-breit">Beenden</span>
+        </button>
       </form>
-      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten">🌙</button>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten"></button>
     </nav>
   </header>
 
@@ -57,26 +68,45 @@
     <p class="gespeichert-hinweis">„{{ hinzugefuegt }}“ steht jetzt in deiner Liste{% if hinzugefuegt_termine and hinzugefuegt_termine != '0' %} &ndash; {{ hinzugefuegt_termine }} Termin(e) sind schon in der Übersicht{% endif %}.</p>
   {% endif %}
 
-  <section class="quellen-status">
-    {% for eintrag in status %}
-      {% if not eintrag.letzter_erfolg_am %}
-        {% set chip_klasse = 'status-fehler' %}
-      {% elif eintrag.veraltet %}
-        {% set chip_klasse = 'status-veraltet' %}
+  {% macro status_chip(eintrag) %}
+    {% if not eintrag.letzter_erfolg_am %}
+      {% set chip_klasse = 'status-fehler' %}
+    {% elif eintrag.veraltet %}
+      {% set chip_klasse = 'status-veraltet' %}
+    {% else %}
+      {% set chip_klasse = 'status-ok' %}
+    {% endif %}
+    <span class="status-chip {{ chip_klasse }}">
+      {{ eintrag.quelle }}:
+      {% if eintrag.letzter_erfolg_am %}
+        {% if eintrag.veraltet %}⚠ veraltet &mdash; {% endif %}
+        zuletzt aktualisiert {{ eintrag.erfolg_text }} ({{ eintrag.alter_text }})
       {% else %}
-        {% set chip_klasse = 'status-ok' %}
+        Fehler seit {{ eintrag.letzter_fehler_am }} ({{ eintrag.letzter_fehler }})
       {% endif %}
-      <span class="status-chip {{ chip_klasse }}">
-        {{ eintrag.quelle }}:
-        {% if eintrag.letzter_erfolg_am %}
-          {% if eintrag.veraltet %}⚠ veraltet &mdash; {% endif %}
-          zuletzt aktualisiert {{ eintrag.erfolg_text }} ({{ eintrag.alter_text }})
-        {% else %}
-          Fehler seit {{ eintrag.letzter_fehler_am }} ({{ eintrag.letzter_fehler }})
-        {% endif %}
-      </span>
-    {% endfor %}
-  </section>
+    </span>
+  {% endmacro %}
+
+  {# Normalfall: eine kleine Zeile. Nur Quellen mit Fehler oder veralteten
+     Daten stehen einzeln da, alle Einzelheiten im Aufklapper. #}
+  {% if status %}
+    {% set probleme = status|selectattr('problem')|list %}
+    <section class="quellen-status">
+      {% for eintrag in probleme %}{{ status_chip(eintrag) }}{% endfor %}
+      <details class="status-details">
+        <summary class="status-chip{% if not probleme %} status-ok{% endif %}">
+          {% if probleme %}
+            Alle Quellen anzeigen
+          {% else %}
+            ✓ Alle {{ status|length }} Quellen aktuell · {{ status_alter }}
+          {% endif %}
+        </summary>
+        <div class="status-liste">
+          {% for eintrag in status %}{{ status_chip(eintrag) }}{% endfor %}
+        </div>
+      </details>
+    </section>
+  {% endif %}
 
   {# Vorschaubild von TMDB, sonst ein Feld in der Senderfarbe #}
   {% macro vorschau(titel, sender, art='backdrop') %}
@@ -91,12 +121,15 @@
   {% macro woche(titel, tage) %}
     <h2 class="panel-titel">{{ titel }}</h2>
     {% for tag in tage %}
-      <div class="tag{% if not tag.eintraege %} tag-leer{% endif %}">
-        <h3 class="tag-titel">{% if tag.datum.isoformat() == heute_iso %}Heute · {% endif %}{{ tag.datum|langtag }}</h3>
+      {% set ist_heute = tag.datum.isoformat() == heute_iso %}
+      <div class="tag{% if not tag.eintraege %} tag-leer{% endif %}{% if ist_heute %} tag-heute{% endif %}">
+        <h3 class="tag-titel">{% if ist_heute %}Heute · {% endif %}{{ tag.datum|langtag }}{% if not tag.eintraege %}<span class="tag-nichts"> · keine bekannten Reality-Formate</span>{% endif %}</h3>
         {% if tag.eintraege %}
           <ul class="sendungen">
             {% for e in tag.eintraege %}
-              <li class="sendung{% if e.gesehen %} ist-gesehen{% endif %}" data-schluessel="{{ e.schluessel }}"{% if e.hauptausstrahlung %} data-wiederholung="1"{% endif %}>
+              {# data-zeit: uebersicht.js graut damit heute schon Gelaufenes aus
+                 (TMDB-Termine haben keine Uhrzeit, die bleiben aussen vor) #}
+              <li class="sendung{% if e.gesehen %} ist-gesehen{% endif %}" data-schluessel="{{ e.schluessel }}"{% if e.hauptausstrahlung %} data-wiederholung="1"{% endif %}{% if 'themoviedb.org' not in e.quellen %} data-zeit="{{ e.datum }}T{{ e.uhrzeit }}"{% endif %}>
                 {{ vorschau(e.titel, e.sender) }}
                 <span class="zeitblock">
                   {% if 'themoviedb.org' in e.quellen %}
@@ -110,6 +143,9 @@
                   <span class="titel">{{ e.titel }}</span>
                   {% if e.beschreibung or e.folgentitel %}
                     <span class="beschreibung">{{ e.beschreibung or e.folgentitel }}</span>
+                  {% endif %}
+                  {% if e.hauptausstrahlung %}
+                    <span class="wdh-hinweis">Wiederholung · Erstausstrahlung {{ e.hauptausstrahlung }}</span>
                   {% endif %}
                 </span>
                 <span class="marken">
@@ -132,8 +168,6 @@
             {% endfor %}
           </ul>
           <p class="keine-sendung alles-gefiltert">Alles an diesem Tag ist durch die Schalter oben ausgeblendet.</p>
-        {% else %}
-          <p class="keine-sendung">Keine bekannten Reality-Formate an diesem Tag.</p>
         {% endif %}
       </div>
     {% endfor %}
@@ -174,14 +208,16 @@
      uebersicht.js blendet dann jeweils nur einen ein #}
   <nav class="reiter-leiste" aria-label="Ansicht wählen">
     <div class="reiter-gruppe">
-      <button type="button" class="reiter" data-reiter="woche1">Nächste Woche</button>
-      <button type="button" class="reiter" data-reiter="woche2">Übernächste Woche</button>
+      <button type="button" class="reiter" data-reiter="woche1"><span class="reiter-text">Nächste Woche<small class="reiter-zeitraum">{{ zeitraum.woche1 }}</small></span></button>
+      <button type="button" class="reiter" data-reiter="woche2"><span class="reiter-text">Übernächste Woche<small class="reiter-zeitraum">{{ zeitraum.woche2 }}</small></span></button>
       <button type="button" class="reiter" data-reiter="demnaechst">Demnächst{% if demnaechst %} <span class="zahl">{{ demnaechst|length }}</span>{% endif %}</button>
       <button type="button" class="reiter" data-reiter="neu">Neu entdeckt{% if entdeckt_reality %} <span class="zahl">{{ entdeckt_reality|length }}</span>{% endif %}</button>
     </div>
+    {# Umschalt-Pillen; die Checkbox steckt sichtbar-versteckt darin, damit
+       Tastatur und Vorleser sie weiter als Schalter erkennen #}
     <div class="anzeige-filter">
-      <label><input type="checkbox" id="filter-wiederholungen"> Wiederholungen ausblenden</label>
-      <label><input type="checkbox" id="filter-gesehen"> Gesehenes ausblenden</label>
+      <label class="filter-pille"><input type="checkbox" id="filter-wiederholungen"><span>Wiederholungen ausblenden</span></label>
+      <label class="filter-pille"><input type="checkbox" id="filter-gesehen"><span>Gesehenes ausblenden</span></label>
     </div>
   </nav>
 

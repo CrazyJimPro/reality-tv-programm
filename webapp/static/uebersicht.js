@@ -112,5 +112,23 @@
       });
   });
 
+  // --- Heute schon Gelaufenes ausgrauen -----------------------------------
+  // Nach der Uhr des Browsers, jede Minute neu - so stimmt es auch, wenn die
+  // Seite den ganzen Abend offen bleibt. Eine Sendung gilt ab ihrer
+  // Startzeit plus 30 Minuten als gelaufen (die Endzeit kennen die Quellen
+  // nicht); TMDB-Termine ohne Uhrzeit tragen kein data-zeit.
+  function zweistellig(n) { return (n < 10 ? "0" : "") + n; }
+
+  function vorbeiMarkieren() {
+    var grenze = new Date(Date.now() - 30 * 60 * 1000);
+    var jetzt = grenze.getFullYear() + "-" + zweistellig(grenze.getMonth() + 1) + "-" +
+      zweistellig(grenze.getDate()) + "T" + zweistellig(grenze.getHours()) + ":" + zweistellig(grenze.getMinutes());
+    document.querySelectorAll(".sendung[data-zeit]").forEach(function (li) {
+      li.classList.toggle("vorbei", li.getAttribute("data-zeit") < jetzt);
+    });
+  }
+
+  vorbeiMarkieren();
+  setInterval(vorbeiMarkieren, 60 * 1000);
   leereTageMarkieren();
 })();

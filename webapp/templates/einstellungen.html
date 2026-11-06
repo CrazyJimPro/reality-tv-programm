@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sendungen verwalten</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script>
     (function () {
@@ -20,7 +21,7 @@
     <p class="subtitle">Vorschläge an-/abwählen, eigene Sendungen mit "Hinzufügen" ergänzen (beliebig oft wiederholbar) und erst zum Schluss einmal "Speichern" — das stößt dann sofort einen neuen Datenabruf an.</p>
     <nav class="nav-back">
       <a href="{{ url_for('index') }}">&larr; zurück zur Übersicht</a>
-      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten">🌙</button>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Design umschalten"></button>
     </nav>
   </header>
 
